@@ -301,8 +301,13 @@ function renderBase(d) {
   if (comDia.length) {
     const imp = comDia.reduce((t, p) => t + p.valor - p.valor / (1 + p.variacao_dia_pct / 100), 0);
     $('today').textContent = `${imp > 0 ? '▲' : imp < 0 ? '▼' : ''} ${fmtSigned(imp)}`; pinta('today', imp);
-  } else $('today').textContent = 'sem dados';
+  } else $('today').textContent = r.data_precos ? '—' : 'sem dados';
   $('updated').textContent = new Date(d.atualizado).toLocaleString('pt-PT', { dateStyle: 'short', timeStyle: 'short' });
+  // IBKR (extrato Flex): os valores são do fecho do último dia útil, não em tempo real.
+  if (r.data_precos) {
+    const [a, m, dia] = r.data_precos.split('-');
+    $('updated').textContent = `fecho de ${dia}/${m}/${a.slice(2)}`;
+  }
   $('invested').textContent = fmtMoney(r.custo_total);
   $('count').textContent = r.numero_posicoes;
   const top = d.posicoes[0];
