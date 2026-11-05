@@ -11,15 +11,15 @@
 <style>
 /* Dashboard monocromático: barra fixa, número da carteira em destaque, depois tabelas e barras finas. */
 :root {
-  --paper: #ffffff; --ink: #000000; --grey: #3f3f3f; --faint: #8a8a8a; --rule: #e6e6e6; --soft: #f3f3f3;
+  --paper: #ffffff; --ink: #000000; --grey: #3f3f3f; --faint: #8a8a8a; --rule: #e6e6e6; --soft: #f3f3f3; --up: #0a7d32; --down: #c8102e;
   --display: Archivo, 'Helvetica Neue', Helvetica, Arial, sans-serif;
   --body: 'Instrument Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) { --paper: #000000; --ink: #ffffff; --grey: #c4c4c4; --faint: #7a7a7a; --rule: #262626; --soft: #141414; color-scheme: dark; }
+  :root:not([data-theme="light"]) { --paper: #000000; --ink: #ffffff; --grey: #c4c4c4; --faint: #7a7a7a; --rule: #262626; --soft: #141414; --up: #3ddc84; --down: #ff5c6c; color-scheme: dark; }
 }
-:root[data-theme="dark"] { --paper: #000000; --ink: #ffffff; --grey: #c4c4c4; --faint: #7a7a7a; --rule: #262626; --soft: #141414; color-scheme: dark; }
+:root[data-theme="dark"] { --paper: #000000; --ink: #ffffff; --grey: #c4c4c4; --faint: #7a7a7a; --rule: #262626; --soft: #141414; --up: #3ddc84; --down: #ff5c6c; color-scheme: dark; }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 body { margin: 0; background: var(--paper); color: var(--ink); font: 500 15px/1.6 var(--body); -webkit-font-smoothing: antialiased; }
@@ -82,6 +82,8 @@ section.block { border-top: 1px solid var(--ink); padding-block: 56px; }
 .pos .big { font: 700 16px var(--display); }
 .chg { display: inline-flex; align-items: center; gap: 4px; font-weight: 700; }
 .pl { display: grid; gap: 2px; }
+.up { color: var(--up); }
+.down { color: var(--down); }
 @media (max-width: 700px) {
   .pos-head { display: none; }
   .pos { grid-template-columns: 1fr auto; grid-template-areas: "a v" "w h" "w p"; row-gap: 6px; }
@@ -231,6 +233,9 @@ function expirado(t) {
 const fmtMoney = (n, c = moeda) => n == null ? '—' : new Intl.NumberFormat('pt-PT', { style: 'currency', currency: c || 'USD', maximumFractionDigits: 2 }).format(n);
 const fmtPct = (n, sign = true) => n == null ? '—' : `${sign && n > 0 ? '+' : ''}${n.toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
 const fmtSigned = n => n == null ? '—' : `${n > 0 ? '+' : ''}${fmtMoney(n)}`;
+// Verde para subidas, vermelho para descidas (só nos números com sinal).
+const cor = n => n == null || n === 0 ? '' : n > 0 ? ' up' : ' down';
+const pinta = (id, n) => { $(id).classList.remove('up', 'down'); const c = cor(n).trim(); if (c) $(id).classList.add(c); };
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
 
 function renderSteps(active) {
@@ -261,12 +266,13 @@ function renderBase(d) {
   const r = d.resumo; moeda = r.moeda_conta || 'USD';
   $('broker').textContent = r.corretora;
   $('value').textContent = fmtMoney(r.valor_total);
-  $('pl').textContent = `${fmtSigned(r.lucro_total)} desde a compra`;
+  $('pl').textContent = `${r.lucro_total > 0 ? '▲' : r.lucro_total < 0 ? '▼' : ''} ${fmtSigned(r.lucro_total)} desde a compra`;
   $('plpct').textContent = fmtPct(r.lucro_total_pct);
+  pinta('pl', r.lucro_total); pinta('plpct', r.lucro_total_pct);
   const comDia = d.posicoes.filter(p => p.variacao_dia_pct != null);
   if (comDia.length) {
     const imp = comDia.reduce((t, p) => t + p.valor - p.valor / (1 + p.variacao_dia_pct / 100), 0);
-    $('today').textContent = `Hoje ${fmtSigned(imp)}`;
+    $('today').textContent = `Hoje ${imp > 0 ? '▲' : imp < 0 ? '▼' : ''} ${fmtSigned(imp)}`; pinta('today', imp);
   } else $('today').textContent = '';
   $('updated').textContent = new Date(d.atualizado).toLocaleString('pt-PT', { dateStyle: 'short', timeStyle: 'short' });
   $('invested').textContent = fmtMoney(r.custo_total);
@@ -285,8 +291,8 @@ function renderBase(d) {
     const w = el('div', 'w'); const bar = el('i'); bar.style.width = Math.max(2, p.peso_pct * 1.4) + 'px';
     w.append(bar, el('span', null, fmtPct(p.peso_pct, false)));
     const v = el('div', 'big', fmtMoney(p.valor));
-    const h = el('div', 'chg', p.variacao_dia_pct == null ? '—' : seta(p.variacao_dia_pct) + fmtPct(p.variacao_dia_pct));
-    const pl = el('div', 'pl'); pl.append(el('span', 'chg', seta(p.lucro) + fmtSigned(p.lucro)), el('span', 'line', fmtPct(p.lucro_pct)));
+    const h = el('div', 'chg' + cor(p.variacao_dia_pct), p.variacao_dia_pct == null ? '—' : seta(p.variacao_dia_pct) + fmtPct(p.variacao_dia_pct));
+    const pl = el('div', 'pl'); pl.append(el('span', 'chg' + cor(p.lucro), seta(p.lucro) + fmtSigned(p.lucro)), el('span', 'line' + cor(p.lucro_pct), fmtPct(p.lucro_pct)));
     row.append(a, w, v, h, pl); box.append(row);
   }
   renderChart(d.historico);
@@ -303,7 +309,9 @@ function renderBase(d) {
       b.addEventListener('click', () => { const fechado = tese.classList.toggle('closed'); b.textContent = fechado ? 'Ler mais' : 'Ler menos'; });
       c.append(b);
     }
-    c.append(el('p', 'sub num', `Referência ${fmtMoney(a.preco_referencia)} · agora ${fmtMoney(a.preco_atual)} (${fmtPct(a.variacao_pct)})`));
+    const ref = el('p', 'sub num', `Referência ${fmtMoney(a.preco_referencia)} · agora ${fmtMoney(a.preco_atual)} `);
+    ref.append(el('span', cor(a.variacao_pct).trim() || null, `${a.variacao_pct > 0 ? '▲' : a.variacao_pct < 0 ? '▼' : ''} ${fmtPct(a.variacao_pct)}`));
+    c.append(ref);
     c.append(el('p', 'sub', `${a.leitura} · dia ${a.dias_passados} de ${a.horizonte_dias} · confiança ${a.confianca}`));
     as.append(c);
   }
@@ -341,7 +349,7 @@ function renderMercado(m) {
     w.append(b, el('span', null, x.setor)); r.append(w, el('strong', 'num', fmtPct(x.peso_pct, false))); s.append(r);
   }
   const i = $('indices'); i.replaceChildren();
-  for (const x of m.indices) { const r = el('div', 'row'); r.append(el('span', null, x.nome), el('strong', 'num', fmtPct(x.variacao_pct))); i.append(r); }
+  for (const x of m.indices) { const r = el('div', 'row'); r.append(el('span', null, x.nome), el('strong', 'num' + cor(x.variacao_pct), (x.variacao_pct > 0 ? '▲ ' : x.variacao_pct < 0 ? '▼ ' : '') + fmtPct(x.variacao_pct))); i.append(r); }
   const e = $('earnings'); e.replaceChildren();
   if (!m.resultados.length) e.append(el('p', 'row sub', 'Nenhuma empresa da carteira apresenta resultados nos próximos 14 dias.'));
   for (const x of m.resultados) { const r = el('div', 'row'); r.append(el('span', null, `${x.simbolo} · ${x.hora}${x.eps_estimado != null ? ' · EPS estimado ' + x.eps_estimado : ''}`), el('strong', 'num', new Date(x.data).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' }))); e.append(r); }
