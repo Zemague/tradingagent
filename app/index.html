@@ -82,6 +82,8 @@ section.block { border-top: 1px solid var(--ink); padding-block: 56px; }
 .pos .big { font: 700 16px var(--display); }
 .chg { display: inline-flex; align-items: center; gap: 4px; font-weight: 700; }
 .pl { display: grid; gap: 2px; }
+.m { display: none; font: 600 10px var(--body); text-transform: uppercase; letter-spacing: .14em; color: var(--grey); }
+@media (max-width: 700px) { .m { display: block; } .pos > :nth-child(n+3) { display: grid; gap: 2px; justify-items: end; } }
 .up { color: var(--up); }
 .down { color: var(--down); }
 @media (max-width: 700px) {
@@ -170,7 +172,7 @@ footer .wrap { padding-block: 22px 40px; display: flex; justify-content: space-b
       <div>
         <span class="label">Valor da carteira · <span id="broker"></span></span>
         <h1 class="num" id="value">—</h1>
-        <div class="meta num"><span id="pl">—</span><span id="plpct">—</span><span id="today">—</span></div>
+        <div class="meta num"><span><span id="pl">—</span> <span id="plpct">—</span> <span class="sub">desde a compra</span></span><span><span class="sub">hoje</span> <span id="today">—</span></span></div>
       </div>
       <div class="updated"><span class="label">Atualizado</span><strong class="num" id="updated">—</strong><button id="refresh">Atualizar</button></div>
     </section>
@@ -179,7 +181,7 @@ footer .wrap { padding-block: 22px 40px; display: flex; justify-content: space-b
       <div class="stat"><span class="label">Investido</span><strong class="num" id="invested">—</strong></div>
       <div class="stat"><span class="label">Posições</span><strong class="num" id="count">—</strong></div>
       <div class="stat"><span class="label">Maior posição</span><strong class="num" id="largest">—</strong></div>
-      <div class="stat"><span class="label">Top 3</span><strong class="num" id="top3">—</strong></div>
+      <div class="stat"><span class="label">Peso das 3 maiores</span><strong class="num" id="top3">—</strong></div>
     </div>
 
     <section class="block">
@@ -189,14 +191,14 @@ footer .wrap { padding-block: 22px 40px; display: flex; justify-content: space-b
 
     <section class="block" id="carteira">
       <div class="head"><div style="display:grid;gap:8px"><span class="label">Carteira</span><h2>Posições</h2></div></div>
-      <div class="pos-head label"><span>Ativo</span><span>Peso</span><span>Valor</span><span>Hoje</span><span>Desde a compra</span></div>
+      <div class="pos-head label"><span>Ativo</span><span>Peso na carteira</span><span>Valor</span><span>Variação hoje</span><span>Lucro desde a compra</span></div>
       <div id="positions"></div>
     </section>
 
     <section class="block" id="mercado">
       <div class="head"><div style="display:grid;gap:8px"><span class="label">Mercado</span><h2>Exposição e contexto</h2></div><span class="label" id="market-state">A carregar…</span></div>
       <div class="cols">
-        <div><span class="label">Exposição por setor</span><div class="rows" id="sectors" style="margin-top:12px"></div></div>
+        <div><span class="label">Exposição por setor · % da carteira</span><div class="rows" id="sectors" style="margin-top:12px"></div></div>
         <div style="display:grid;gap:36px">
           <div><span class="label">Índices de referência · última sessão</span><div class="rows" id="indices" style="margin-top:12px"></div></div>
           <div><span class="label">Resultados nos próximos 14 dias</span><div class="rows" id="earnings" style="margin-top:12px"></div></div>
@@ -274,14 +276,14 @@ function renderBase(d) {
   const r = d.resumo; moeda = r.moeda_conta || 'USD';
   $('broker').textContent = r.corretora;
   $('value').textContent = fmtMoney(r.valor_total);
-  $('pl').textContent = `${r.lucro_total > 0 ? '▲' : r.lucro_total < 0 ? '▼' : ''} ${fmtSigned(r.lucro_total)} desde a compra`;
-  $('plpct').textContent = fmtPct(r.lucro_total_pct);
+  $('pl').textContent = `${r.lucro_total > 0 ? '▲' : r.lucro_total < 0 ? '▼' : ''} ${fmtSigned(r.lucro_total)}`;
+  $('plpct').textContent = `(${fmtPct(r.lucro_total_pct)})`;
   pinta('pl', r.lucro_total); pinta('plpct', r.lucro_total_pct);
   const comDia = d.posicoes.filter(p => p.variacao_dia_pct != null);
   if (comDia.length) {
     const imp = comDia.reduce((t, p) => t + p.valor - p.valor / (1 + p.variacao_dia_pct / 100), 0);
-    $('today').textContent = `Hoje ${imp > 0 ? '▲' : imp < 0 ? '▼' : ''} ${fmtSigned(imp)}`; pinta('today', imp);
-  } else $('today').textContent = '';
+    $('today').textContent = `${imp > 0 ? '▲' : imp < 0 ? '▼' : ''} ${fmtSigned(imp)}`; pinta('today', imp);
+  } else $('today').textContent = 'sem dados';
   $('updated').textContent = new Date(d.atualizado).toLocaleString('pt-PT', { dateStyle: 'short', timeStyle: 'short' });
   $('invested').textContent = fmtMoney(r.custo_total);
   $('count').textContent = r.numero_posicoes;
@@ -297,10 +299,10 @@ function renderBase(d) {
     const qtd = Number(p.quantidade).toLocaleString('pt-PT', { maximumFractionDigits: 4 });
     a.append(el('div', 'line', `${qtd} × ${fmtMoney(p.preco_atual, p.moeda_preco)} · médio ${fmtMoney(p.preco_medio, p.moeda_preco)}`));
     const w = el('div', 'w'); const bar = el('i'); bar.style.width = Math.max(2, p.peso_pct * 1.4) + 'px';
-    w.append(bar, el('span', null, fmtPct(p.peso_pct, false)));
-    const v = el('div', 'big', fmtMoney(p.valor));
-    const h = el('div', 'chg' + cor(p.variacao_dia_pct), p.variacao_dia_pct == null ? '—' : seta(p.variacao_dia_pct) + fmtPct(p.variacao_dia_pct));
-    const pl = el('div', 'pl'); pl.append(el('span', 'chg' + cor(p.lucro), seta(p.lucro) + fmtSigned(p.lucro)), el('span', 'line' + cor(p.lucro_pct), fmtPct(p.lucro_pct)));
+    w.append(bar, el('span', null, `${fmtPct(p.peso_pct, false)} da carteira`));
+    const v = el('div'); v.append(el('span', 'm', 'Valor'), el('span', 'big', fmtMoney(p.valor)));
+    const h = el('div'); h.append(el('span', 'm', 'Hoje'), el('span', 'chg' + cor(p.variacao_dia_pct), p.variacao_dia_pct == null ? '—' : seta(p.variacao_dia_pct) + fmtPct(p.variacao_dia_pct)));
+    const pl = el('div', 'pl'); pl.append(el('span', 'm', 'Desde a compra'), el('span', 'chg' + cor(p.lucro), seta(p.lucro) + fmtSigned(p.lucro)), el('span', 'line' + cor(p.lucro_pct), fmtPct(p.lucro_pct)));
     row.append(a, w, v, h, pl); box.append(row);
   }
   renderChart(d.historico);
@@ -318,7 +320,7 @@ function renderBase(d) {
       c.append(b);
     }
     const ref = el('p', 'sub num', `Referência ${fmtMoney(a.preco_referencia)} · agora ${fmtMoney(a.preco_atual)} `);
-    ref.append(el('span', cor(a.variacao_pct).trim() || null, `${a.variacao_pct > 0 ? '▲' : a.variacao_pct < 0 ? '▼' : ''} ${fmtPct(a.variacao_pct)}`));
+    ref.append(el('span', cor(a.variacao_pct).trim() || null, `${a.variacao_pct > 0 ? '▲' : a.variacao_pct < 0 ? '▼' : ''} ${fmtPct(a.variacao_pct)}`), document.createTextNode(' desde a avaliação'));
     c.append(ref);
     c.append(el('p', 'sub', `${a.leitura} · dia ${a.dias_passados} de ${a.horizonte_dias} · confiança ${a.confianca}`));
     as.append(c);
