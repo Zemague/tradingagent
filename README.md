@@ -1,5 +1,5 @@
 # TradingAgent
 
-Um assistente no Telegram que explica, em linguagem simples, o que se passa com os teus investimentos. Só lê dados: nunca compra nem vende.
+Análise de carteira com IA, no Telegram. Liga-se à corretora (Trading 212 ou Alpaca), cruza as posições com notícias e dados de mercado, e explica o que mudou, porquê e o que acompanhar. Só lê dados: nunca negoceia.
 
-Site: publicado com GitHub Pages a partir de `index.html`.
+Site: https://zemague.github.io/tradingagent/

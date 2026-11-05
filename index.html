@@ -5,173 +5,291 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>TradingAgent</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<meta name="description" content="Um assistente no Telegram que te explica, em linguagem simples, o que se passa com os teus investimentos.">
+<meta name="description" content="TradingAgent liga-se à tua corretora e diz-te no Telegram o que mudou na tua carteira, porquê e o que acompanhar. Análise com IA, só leitura.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Sora:wght@600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Sora:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
-/* Uma coluna estreita, como um README; as conversas parecem o Telegram. */
+/* Página de produto numa coluna larga: tese no topo, dois públicos, prova (conversas), confiança, roteiro. */
 :root {
-  --bg: #f6f7f9; --surface: #ffffff; --text: #161a22; --muted: #5d6573; --line: #e2e5eb;
-  --accent: #2a6fdb; --accent-soft: #e9f0fc; --me: #2a6fdb; --me-text: #ffffff; --bot: #ffffff; --down: #c0392b; --up: #1e7b45;
+  --bg: #f5f6f8; --surface: #ffffff; --ink: #121620; --muted: #5a6271; --line: #e1e4ea;
+  --accent: #1d5fd1; --accent-soft: #e8effb; --me: #1d5fd1; --me-text: #ffffff; --bot: #ffffff;
+  --down: #bf3a2b; --up: #1b7a44; --band: #0f1724; --band-text: #e8ecf3; --band-muted: #9aa5b8;
   --display: Sora, 'IBM Plex Sans', system-ui, sans-serif; --body: 'IBM Plex Sans', system-ui, sans-serif; --mono: 'IBM Plex Mono', ui-monospace, monospace;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0f1218; --surface: #171c24; --text: #e7eaf0; --muted: #9ba3b1; --line: #2a313d;
-    --accent: #6ea8ff; --accent-soft: #18263b; --me: #2f6fd6; --me-text: #ffffff; --bot: #1d2430; --down: #f0786b; --up: #4cc27a; color-scheme: dark;
+    --bg: #0d1016; --surface: #151a22; --ink: #e8ebf1; --muted: #9aa2b0; --line: #283040;
+    --accent: #72a9ff; --accent-soft: #172438; --me: #2b66cc; --me-text: #ffffff; --bot: #1b222d;
+    --down: #f07a6c; --up: #52c27f; --band: #080b10; --band-text: #e8ecf3; --band-muted: #8f9ab0; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #0f1218; --surface: #171c24; --text: #e7eaf0; --muted: #9ba3b1; --line: #2a313d;
-  --accent: #6ea8ff; --accent-soft: #18263b; --me: #2f6fd6; --me-text: #ffffff; --bot: #1d2430; --down: #f0786b; --up: #4cc27a; color-scheme: dark;
+  --bg: #0d1016; --surface: #151a22; --ink: #e8ebf1; --muted: #9aa2b0; --line: #283040;
+  --accent: #72a9ff; --accent-soft: #172438; --me: #2b66cc; --me-text: #ffffff; --bot: #1b222d;
+  --down: #f07a6c; --up: #52c27f; --band: #080b10; --band-text: #e8ecf3; --band-muted: #8f9ab0; color-scheme: dark;
 }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--text); font: 17px/1.65 var(--body); }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.65 var(--body); }
 a { color: var(--accent); }
-.page { max-width: 720px; margin: 0 auto; padding-block: 56px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 48px; }
-h1, h2 { font-family: var(--display); text-wrap: balance; letter-spacing: -0.01em; margin: 0; }
-h1 { font-size: clamp(32px, 7vw, 44px); line-height: 1.1; }
-h2 { font-size: 24px; }
+.wrap { max-width: 1040px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; letter-spacing: -0.015em; }
+h1 { font-size: clamp(36px, 6.2vw, 60px); line-height: 1.04; font-weight: 700; }
+h2 { font-size: clamp(26px, 3.6vw, 34px); line-height: 1.15; font-weight: 600; }
+h3 { font-size: 18px; font-weight: 600; }
 p { margin: 0; }
-section { display: grid; gap: 16px; }
-.lead { font-size: 19px; color: var(--muted); }
-.label { font: 500 12px var(--mono); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
-ul, ol { margin: 0; padding-left: 22px; display: grid; gap: 8px; }
-code { font: 15px var(--mono); background: var(--accent-soft); padding: 1px 6px; border-radius: 6px; }
+.label { font: 500 12px var(--mono); text-transform: uppercase; letter-spacing: .09em; color: var(--muted); }
+.muted { color: var(--muted); }
 
-.chat { background: var(--accent-soft); border-radius: 18px; padding: 18px; display: grid; gap: 10px; }
-.chat .label { margin-bottom: 2px; }
-.msg { max-width: 88%; padding: 10px 14px; border-radius: 16px; font-size: 15.5px; line-height: 1.5; display: grid; gap: 8px; }
+/* Hero escuro: o produto é um terminal de carteira no bolso */
+.hero { background: var(--band); color: var(--band-text); }
+.hero .wrap { padding-block: 72px 64px; display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 48px; align-items: center; }
+.hero .label { color: var(--band-muted); }
+.hero .lead { color: var(--band-muted); font-size: 19px; max-width: 34em; }
+.hero-copy { display: grid; gap: 20px; min-width: 0; }
+.ticker { font: 500 13px var(--mono); color: var(--band-muted); display: flex; flex-wrap: wrap; gap: 6px 18px; font-variant-numeric: tabular-nums; }
+.ticker b { color: var(--band-text); font-weight: 500; }
+.ticker .down { color: #f07a6c; } .ticker .up { color: #52c27f; }
+.phone { background: #1a2230; border: 1px solid #2a3446; border-radius: 22px; padding: 16px; display: grid; gap: 10px; min-width: 0; }
+.phone .msg.bot { background: #222c3c; border-color: #2e3a4e; color: #e8ecf3; }
+
+main section { padding-block: 64px; border-bottom: 1px solid var(--line); }
+.head { display: grid; gap: 10px; margin-bottom: 28px; max-width: 40em; }
+
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.persona { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 26px; display: grid; gap: 14px; align-content: start; min-width: 0; }
+.persona ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+
+.features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; border-top: 1px solid var(--line); }
+.feature { padding: 22px 22px 22px 0; border-bottom: 1px solid var(--line); display: grid; gap: 6px; align-content: start; min-width: 0; }
+.feature p { color: var(--muted); font-size: 15.5px; }
+
+.chats { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.chat { background: var(--accent-soft); border-radius: 18px; padding: 18px; display: grid; gap: 10px; align-content: start; min-width: 0; }
+.msg { max-width: 90%; padding: 10px 14px; border-radius: 16px; font-size: 15px; line-height: 1.5; display: grid; gap: 8px; }
 .msg.me { justify-self: end; background: var(--me); color: var(--me-text); border-bottom-right-radius: 4px; }
 .msg.bot { justify-self: start; background: var(--bot); border: 1px solid var(--line); border-bottom-left-radius: 4px; }
 .down { color: var(--down); font-weight: 600; }
 .up { color: var(--up); font-weight: 600; }
-.chats { display: grid; gap: 20px; }
 
-.never { border: 1px solid var(--line); background: var(--surface); border-radius: 14px; padding: 18px 20px; }
-footer { color: var(--muted); font-size: 14px; border-top: 1px solid var(--line); padding-top: 20px; }
-@media (max-width: 480px) { .msg { max-width: 94%; } body { font-size: 16px; } }
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; counter-reset: s; }
+.step { counter-increment: s; display: grid; gap: 8px; align-content: start; }
+.step::before { content: "0" counter(s); font: 500 13px var(--mono); color: var(--accent); }
+.step p { color: var(--muted); }
+
+.trust { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+.trust div { display: grid; gap: 6px; align-content: start; }
+.trust p { color: var(--muted); font-size: 15.5px; }
+
+.road { display: grid; gap: 0; border-top: 1px solid var(--line); }
+.road div { display: grid; grid-template-columns: 140px 1fr; gap: 16px; padding-block: 16px; border-bottom: 1px solid var(--line); }
+.pill { font: 500 12px var(--mono); text-transform: uppercase; letter-spacing: .06em; padding: 3px 10px; border-radius: 999px; justify-self: start; align-self: start; }
+.pill.on { background: var(--accent-soft); color: var(--accent); }
+.pill.next { border: 1px solid var(--line); color: var(--muted); }
+
+.cta { padding-block: 64px; display: grid; gap: 14px; justify-items: start; }
+.btn { display: inline-block; background: var(--accent); color: #fff; text-decoration: none; font-weight: 600; padding: 12px 20px; border-radius: 10px; }
+.btn:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+footer { color: var(--muted); font-size: 14px; padding-block: 0 48px; }
+
+@media (max-width: 860px) {
+  .hero .wrap, .two, .chats { grid-template-columns: 1fr; }
+  .features { grid-template-columns: 1fr 1fr; }
+  .steps, .trust { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 540px) {
+  .features, .steps, .trust { grid-template-columns: 1fr; }
+  .feature { padding-right: 0; }
+  .road div { grid-template-columns: 1fr; gap: 6px; }
+  .hero .wrap { padding-block: 48px 44px; }
+  .msg { max-width: 95%; }
+}
 </style>
 </head>
 <body>
-<div class="page">
 
-<header style="display:grid;gap:14px">
-  <span class="label">Telegram · só leitura</span>
-  <h1>TradingAgent</h1>
-  <p class="lead">Um assistente no Telegram que te explica, em linguagem simples, o que se passa com os teus investimentos. Não precisas de perceber de finanças.</p>
+<header class="hero">
+  <div class="wrap">
+    <div class="hero-copy">
+      <span class="label">TradingAgent · análise de carteira com IA</span>
+      <h1>A tua carteira, explicada todos os dias.</h1>
+      <p class="lead">O TradingAgent liga-se à tua corretora, cruza as tuas posições com notícias e dados de mercado, e diz-te no Telegram o que mudou, porquê e o que acompanhar. Só lê. Nunca negoceia.</p>
+      <div class="ticker" aria-hidden="true">
+        <span><b>SPY</b> <span class="down">−0,99%</span></span>
+        <span><b>QQQ</b> <span class="down">−2,75%</span></span>
+        <span><b>SOXX</b> <span class="down">−6,29%</span></span>
+        <span><b>VGK</b> <span class="up">+0,31%</span></span>
+      </div>
+    </div>
+    <div class="phone" aria-label="Exemplo de briefing da manhã">
+      <span class="label">Briefing · 09:00</span>
+      <div class="msg bot">
+        <p><strong>1.</strong> A tua exposição a semicondutores é de 43%. Ontem o setor caiu 6,3% e a carteira desceu 4,7% (cerca de −82 USD).</p>
+        <p><strong>2.</strong> A NVIDIA apresenta resultados a 17/11, depois do fecho. EPS estimado (lucro por ação) de 2,53 USD.</p>
+        <p><strong>3.</strong> A avaliação de risco que fiz à AMD na semana passada confirmou-se: está 8% abaixo do preço de referência.</p>
+      </div>
+    </div>
+  </div>
 </header>
 
+<main>
 <section>
-  <h2>O que faz</h2>
-  <ul>
-    <li><strong>Responde a perguntas</strong> sobre a tua carteira, como falarias com uma pessoa.</li>
-    <li><strong>Envia um resumo todas as manhãs</strong> (dias úteis, 09:00) com as três coisas mais importantes.</li>
-    <li><strong>Avisa-te durante o dia</strong> se uma ação tua sobe ou desce muito (5% ou mais), ou se a carteira toda mexe 3% ou mais.</li>
-    <li><strong>Lembra-se da conversa.</strong> Podes perguntar "e a AMD?" ou "porquê?" sem repetir tudo.</li>
-    <li><strong>Explica os termos técnicos</strong> e diz quanto dinheiro está em causa, não só percentagens.</li>
-  </ul>
-</section>
-
-<section>
-  <h2>Como começar</h2>
-  <ol>
-    <li>Pede acesso ao administrador. Ele precisa do teu ID do Telegram e de uma chave <em>só de leitura</em> da tua corretora (Trading 212 ou Alpaca).</li>
-    <li>Abre a conversa com o bot no Telegram.</li>
-    <li>Escreve uma pergunta. Pronto.</li>
-  </ol>
-  <p>Se o bot responder que não tens acesso, ainda não foste registado.</p>
-</section>
-
-<section>
-  <h2>Exemplos de conversas</h2>
-  <p class="label">Exemplos ilustrativos, com números de teste</p>
-  <div class="chats">
-
-    <div class="chat">
-      <span class="label">Pergunta simples</span>
-      <div class="msg me">como está a minha carteira?</div>
-      <div class="msg bot">
-        <p>Hoje a tua carteira desceu <span class="down">4,7%</span>, cerca de 82 USD.</p>
-        <p>A maior parte da descida vem da AMD, que caiu <span class="down">12%</span>. Como a AMD é um quarto da tua carteira, pesa muito no total.</p>
-        <p>O motivo parece ser uma descida geral nas empresas de chips, não uma notícia má só da AMD.</p>
-        <p>A acompanhar: a NVIDIA apresenta resultados a 17/11. Isso costuma mexer com todo o setor.</p>
+  <div class="wrap">
+    <div class="head">
+      <span class="label">Para quem</span>
+      <h2>Feito para quem leva a carteira a sério, ou quer começar a levar.</h2>
+    </div>
+    <div class="two">
+      <div class="persona">
+        <span class="label">Investidores e empresários</span>
+        <h3>Uma visão completa, sem abrir cinco aplicações.</h3>
+        <ul>
+          <li>Posições, pesos, custo médio e lucro, direto da corretora.</li>
+          <li>Exposição por setor e concentração de risco.</li>
+          <li>Notícias filtradas pelo que tens, com fonte e impacto provável.</li>
+          <li>Calendário de resultados das tuas empresas nos próximos 14 dias.</li>
+          <li>Um briefing de três prioridades antes de o mercado abrir.</li>
+        </ul>
+      </div>
+      <div class="persona">
+        <span class="label">O passo além do S&amp;P 500</span>
+        <h3>Já investes num índice. Agora queres perceber o que tens.</h3>
+        <ul>
+          <li>Pergunta "porque é que a minha carteira caiu hoje?" e recebe uma resposta clara.</li>
+          <li>Os termos técnicos vêm explicados e as percentagens traduzidas em euros ou dólares.</li>
+          <li>Compara empresas, setores e o teu desempenho com os índices de referência.</li>
+          <li>Aprende com cada movimento real da tua carteira, não com exemplos de manual.</li>
+        </ul>
       </div>
     </div>
-
-    <div class="chat">
-      <span class="label">Pergunta de seguimento</span>
-      <div class="msg me">o que aconteceu à NVIDIA?</div>
-      <div class="msg bot">
-        <p>A NVIDIA caiu <span class="down">4,4%</span> hoje, para 191 USD por ação. Na tua carteira são cerca de 25 USD a menos.</p>
-        <p>Não há notícia específica. Caíram quase todas as empresas de chips, e a NVIDIA até caiu menos do que a média do setor.</p>
-      </div>
-      <div class="msg me">e a AMD?</div>
-      <div class="msg bot">
-        <p>A AMD caiu mais: <span class="down">11,8%</span>, para 431 USD. Na tua carteira são cerca de 57 USD a menos.</p>
-        <p>Há uma notícia positiva sobre o crescimento esperado para 2027, mas hoje o mercado ignorou-a e vendeu o setor todo.</p>
-      </div>
-    </div>
-
-    <div class="chat">
-      <span class="label">Alerta automático</span>
-      <div class="msg bot">
-        <p><strong>Alerta (15:30)</strong></p>
-        <p>A AMD caiu <span class="down">11,8%</span> hoje, agora vale 431 USD por ação. É 26% da tua carteira: perdeste cerca de 57 USD com esta ação.</p>
-        <p>Isto é só um aviso, não uma recomendação. Responde "porquê?" e eu explico o que se passou.</p>
-      </div>
-      <div class="msg me">porquê?</div>
-      <div class="msg bot">
-        <p>Hoje houve uma venda forte nas empresas de chips. O SOXX (um fundo que segue estas empresas) caiu <span class="down">6,9%</span>. A AMD caiu quase o dobro.</p>
-        <p>Não encontrei nenhuma notícia má específica da AMD. Parece um movimento do setor, não da empresa.</p>
-      </div>
-    </div>
-
-    <div class="chat">
-      <span class="label">Explicar um termo</span>
-      <div class="msg me">o que é o EPS?</div>
-      <div class="msg bot">
-        <p>EPS quer dizer lucro por ação. É o lucro da empresa dividido pelo número de ações.</p>
-        <p>Quando os analistas dizem "EPS estimado de 2,53 USD", estão a dizer quanto esperam que a empresa ganhe por cada ação. Se o valor real ficar acima, a ação costuma subir; se ficar abaixo, costuma descer.</p>
-      </div>
-    </div>
-
-    <div class="chat">
-      <span class="label">Pergunta pouco clara</span>
-      <div class="msg me">e essa?</div>
-      <div class="msg bot"><p>Não percebi a que empresa te referes. Podes dizer o nome ou o símbolo, por exemplo "Apple" ou "AAPL"?</p></div>
-    </div>
-
   </div>
 </section>
 
 <section>
-  <h2>Perguntas que podes fazer</h2>
-  <ul>
-    <li><code>como está a minha carteira?</code></li>
-    <li><code>o que aconteceu à Apple?</code></li>
-    <li><code>compara a AMD com a NVIDIA</code></li>
-    <li><code>tenho demasiado dinheiro em tecnologia?</code></li>
-    <li><code>que empresas minhas apresentam resultados esta semana?</code></li>
-    <li><code>o que é um ETF?</code></li>
-  </ul>
-</section>
-
-<section>
-  <h2>O que nunca faz</h2>
-  <div class="never">
-    <ul>
-      <li><strong>Não compra nem vende nada.</strong> Só lê os dados da tua conta.</li>
-      <li><strong>Não inventa números.</strong> Se lhe faltar informação, diz-te.</li>
-      <li><strong>Não te diz o que fazer.</strong> Explica o que aconteceu. A decisão é sempre tua.</li>
-      <li><strong>Não mostra a tua carteira a mais ninguém.</strong> Cada pessoa só vê a sua.</li>
-    </ul>
+  <div class="wrap">
+    <div class="head">
+      <span class="label">O que tens</span>
+      <h2>Tudo o que interessa sobre a tua carteira, num só sítio.</h2>
+    </div>
+    <div class="features">
+      <div class="feature"><h3>Briefing diário</h3><p>Dias úteis às 09:00: as três coisas com mais impacto na tua carteira, ordenadas por importância.</p></div>
+      <div class="feature"><h3>Alertas em tempo real</h3><p>Aviso quando uma posição mexe 5% ou mais, ou a carteira 3% ou mais, com o impacto em dinheiro. Sem repetições.</p></div>
+      <div class="feature"><h3>Perguntas livres</h3><p>Pergunta o que quiseres sobre as tuas posições, sobre uma empresa que não tens ou sobre um conceito.</p></div>
+      <div class="feature"><h3>Memória da conversa</h3><p>"E a AMD?" ou "porquê?" depois de um alerta são entendidos sem repetires o contexto.</p></div>
+      <div class="feature"><h3>Avaliações com prestação de contas</h3><p>Cada risco ou oportunidade identificado fica registado com o preço do momento e é confrontado com o que aconteceu.</p></div>
+      <div class="feature"><h3>Histórico da carteira</h3><p>Uma fotografia da carteira todas as noites, base dos relatórios semanais e mensais.</p></div>
+    </div>
   </div>
 </section>
 
-<footer>TradingAgent é uma ferramenta de informação, não aconselhamento financeiro.</footer>
+<section>
+  <div class="wrap">
+    <div class="head">
+      <span class="label">Exemplos</span>
+      <h2>Como é falar com o TradingAgent.</h2>
+      <p class="muted">Conversas ilustrativas, com números de uma carteira de teste.</p>
+    </div>
+    <div class="chats">
+      <div class="chat">
+        <span class="label">Seguimento</span>
+        <div class="msg me">o que aconteceu à NVIDIA?</div>
+        <div class="msg bot">
+          <p>Caiu <span class="down">4,4%</span>, para 191 USD, menos do que o setor (SOXX <span class="down">−6,9%</span>). Na tua carteira são cerca de −25 USD.</p>
+          <p>Não há notícia específica: foi uma venda generalizada nos chips. O próximo marco são os resultados de 17/11.</p>
+        </div>
+        <div class="msg me">e a AMD?</div>
+        <div class="msg bot">
+          <p>Caiu mais: <span class="down">11,8%</span>, para 431 USD, quase o dobro do setor. Como é 26% da carteira, foi a maior fonte de perda do dia (cerca de −57 USD).</p>
+        </div>
+      </div>
 
+      <div class="chat">
+        <span class="label">Alerta</span>
+        <div class="msg bot">
+          <p><strong>Alerta (15:30)</strong></p>
+          <p>A AMD caiu <span class="down">11,8%</span> hoje, agora vale 431 USD por ação. É 26% da tua carteira: perdeste cerca de 57 USD com esta ação.</p>
+        </div>
+        <div class="msg me">porquê?</div>
+        <div class="msg bot">
+          <p>Venda forte nas empresas de chips: o SOXX (fundo que segue o setor) caiu <span class="down">6,9%</span>. Não encontrei nenhuma notícia negativa específica da AMD.</p>
+          <p>Leitura: movimento do setor, não da empresa. A acompanhar: os resultados da NVIDIA costumam mexer com todo o setor.</p>
+        </div>
+      </div>
+
+      <div class="chat">
+        <span class="label">Risco da carteira</span>
+        <div class="msg me">tenho demasiado em tecnologia?</div>
+        <div class="msg bot">
+          <p>Sim, a carteira está concentrada: 53% em tecnologia, dos quais 43% em semicondutores.</p>
+          <p>Quer dizer que um dia mau para os chips pesa muito no total. Ontem o setor caiu 6,3% e a carteira desceu 4,7%. Um fundo de índice como o S&amp;P 500 tem cerca de um terço em tecnologia.</p>
+        </div>
+      </div>
+
+      <div class="chat">
+        <span class="label">Comparação</span>
+        <div class="msg me">compara a AMD com a NVIDIA</div>
+        <div class="msg bot">
+          <p>Hoje a AMD caiu muito mais (<span class="down">−11,8%</span> contra <span class="down">−4,4%</span>), apesar de as duas estarem expostas ao mesmo setor.</p>
+          <p>Na tua carteira, as duas estão abaixo do preço de compra: a AMD <span class="down">−22%</span> e a NVIDIA <span class="down">−14%</span>. A NVIDIA tem resultados a 17/11; a AMD não tem nenhum evento marcado nas próximas duas semanas.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="head">
+      <span class="label">Como começar</span>
+      <h2>Três passos, sem instalar nada.</h2>
+    </div>
+    <div class="steps">
+      <div class="step"><h3>Pede acesso</h3><p>O acesso é por convite. Precisas do teu ID do Telegram e de uma chave de API só de leitura da Trading 212 ou da Alpaca.</p></div>
+      <div class="step"><h3>Abre o bot no Telegram</h3><p>Escreve como escreverias a uma pessoa. Se ainda não estiveres registado, o bot avisa-te.</p></div>
+      <div class="step"><h3>Recebe e pergunta</h3><p>O briefing chega todas as manhãs e os alertas durante o dia. Nos intervalos, pergunta o que quiseres.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="head">
+      <span class="label">Confiança</span>
+      <h2>Desenhado para não te pôr em risco.</h2>
+    </div>
+    <div class="trust">
+      <div><h3>Só leitura</h3><p>Não tem permissão para dar ordens. Não compra nem vende nada.</p></div>
+      <div><h3>Factos separados de opinião</h3><p>Não inventa preços nem eventos. Se faltam dados, diz-te.</p></div>
+      <div><h3>Privado por utilizador</h3><p>Cada pessoa só vê a sua carteira. As chaves da corretora nunca vão para a IA.</p></div>
+      <div><h3>Mede os próprios acertos</h3><p>As avaliações ficam registadas para serem verificadas contra os preços reais.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="head">
+      <span class="label">Roteiro</span>
+      <h2>O que já existe e o que vem a seguir.</h2>
+    </div>
+    <div class="road">
+      <div><span class="pill on">Disponível</span><p>Briefing diário, alertas, perguntas com memória, notícias, cotações EUA e Europa, calendário de resultados, registo de avaliações.</p></div>
+      <div><span class="pill next">A seguir</span><p>Taxa de acerto das avaliações a 7 e a 30 dias.</p></div>
+      <div><span class="pill next">A seguir</span><p>Watchlists: seguir empresas que ainda não tens.</p></div>
+      <div><span class="pill next">A seguir</span><p>Relatórios semanais e mensais: evolução, o que correu bem e mal, o que vem aí.</p></div>
+      <div><span class="pill next">Planeado</span><p>Dashboard web com a carteira completa, histórico e gráficos.</p></div>
+    </div>
+  </div>
+</section>
+</main>
+
+<div class="wrap">
+  <div class="cta">
+    <h2>Queres experimentar?</h2>
+    <p class="muted">O TradingAgent está em fase de testes privados, com acesso por convite.</p>
+  </div>
+  <footer>TradingAgent é uma ferramenta de informação e análise. Não é aconselhamento financeiro: as decisões de investimento são sempre tuas.</footer>
 </div>
+
 </body>
 </html>
