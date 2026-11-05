@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>TradingAgent Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Dashboard monocromático: barra fixa, número da carteira em destaque, depois tabelas e barras finas. */
+:root {
+  --paper: #ffffff; --ink: #000000; --grey: #3f3f3f; --faint: #8a8a8a; --rule: #e6e6e6; --soft: #f3f3f3;
+  --display: Archivo, 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --body: 'Instrument Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 500 15px/1.6 var(--body); -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 1280px; margin: 0 auto; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); }
+h1, h2 { font-family: var(--display); font-weight: 700; letter-spacing: -0.03em; margin: 0; text-wrap: balance; }
+p { margin: 0; }
+.label { font: 600 11px var(--body); text-transform: uppercase; letter-spacing: .18em; color: var(--grey); }
+.num { font-variant-numeric: tabular-nums; }
+button { font: 600 11px var(--body); text-transform: uppercase; letter-spacing: .18em; background: var(--paper); color: var(--ink); border: 1px solid var(--ink); padding: 9px 14px; cursor: pointer; }
+button:hover { background: var(--ink); color: var(--paper); }
+button:focus-visible, a:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+
+nav { position: sticky; top: env(safe-area-inset-top, 0px); background: var(--paper); border-bottom: 1px solid var(--ink); z-index: 10; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); background: var(--paper); z-index: 11; }
+nav .wrap { display: flex; align-items: center; justify-content: space-between; gap: 20px; height: 62px; }
+.brand { font: 800 16px var(--display); letter-spacing: .14em; }
+.links { display: flex; gap: 28px; }
+.links a { color: var(--grey); text-decoration: none; font: 600 11px var(--body); text-transform: uppercase; letter-spacing: .18em; }
+.links a:hover { color: var(--ink); }
+.live { display: flex; align-items: center; gap: 8px; }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ink); }
+
+/* Ecrã de carregamento por etapas (herdado do StockAdvisor) */
+.loading { max-width: 760px; margin: 0 auto; padding-block: 96px; display: grid; gap: 28px; }
+.loading-head { display: flex; justify-content: space-between; align-items: end; gap: 16px; }
+.loading-head h2 { font-size: clamp(30px, 5vw, 44px); }
+.pct { font: 700 28px var(--display); }
+.bar { height: 2px; background: var(--rule); }
+.bar > div { height: 100%; width: 0; background: var(--ink); transition: width .4s ease; }
+.steps { display: grid; border-top: 1px solid var(--rule); }
+.step { display: flex; gap: 14px; padding-block: 12px; border-bottom: 1px solid var(--rule); color: var(--faint); }
+.step.on { color: var(--ink); }
+.step.done { color: var(--grey); }
+.step .ic { width: 16px; text-align: center; }
+.notice { max-width: 640px; margin: 0 auto; padding-block: 120px; display: grid; gap: 18px; text-align: center; justify-items: center; }
+.notice h2 { font-size: clamp(28px, 5vw, 40px); }
+
+section.block { border-top: 1px solid var(--ink); padding-block: 56px; }
+.head { display: flex; justify-content: space-between; align-items: end; gap: 20px; flex-wrap: wrap; margin-bottom: 28px; }
+.head h2 { font-size: clamp(26px, 3.6vw, 38px); }
+
+.hero { padding-block: 56px 40px; display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: end; }
+.hero h1 { font-size: clamp(48px, 9vw, 104px); line-height: .95; }
+.hero .meta { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 16px; font-weight: 600; }
+.updated { text-align: right; display: grid; gap: 4px; }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--rule); }
+.stat { padding: 20px 20px 20px 0; border-bottom: 1px solid var(--rule); display: grid; gap: 6px; min-width: 0; }
+.stat strong { font: 700 24px var(--display); letter-spacing: -0.02em; }
+
+.chart { width: 100%; height: 220px; display: block; }
+.empty { color: var(--grey); padding-block: 18px; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
+
+.tw { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; min-width: 680px; }
+th { text-align: left; font: 600 11px var(--body); text-transform: uppercase; letter-spacing: .16em; color: var(--grey); padding: 0 12px 12px 0; border-bottom: 1px solid var(--ink); }
+td { padding: 14px 12px 14px 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+td.r, th.r { text-align: right; }
+.w { display: flex; align-items: center; gap: 10px; }
+.w i { display: block; height: 4px; background: var(--ink); min-width: 2px; }
+.sub { color: var(--grey); font-size: 13px; }
+
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; }
+.cols > div { min-width: 0; }
+.rows { display: grid; border-top: 1px solid var(--rule); }
+.row { display: grid; grid-template-columns: 1fr auto; gap: 12px; padding-block: 12px; border-bottom: 1px solid var(--rule); align-items: center; }
+.row .w i { height: 6px; }
+
+.cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
+.card { background: var(--paper); padding: 22px; display: grid; gap: 10px; align-content: start; min-width: 0; }
+.card .top { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.card .tk { font: 700 20px var(--display); }
+.tag { font: 600 10px var(--body); text-transform: uppercase; letter-spacing: .16em; border: 1px solid var(--ink); padding: 3px 8px; white-space: nowrap; }
+.tag.fill { background: var(--ink); color: var(--paper); }
+.analysis { white-space: pre-wrap; max-width: 75ch; font-size: 16px; line-height: 1.7; }
+.alert { padding-block: 14px; border-bottom: 1px solid var(--rule); white-space: pre-wrap; }
+footer { border-top: 1px solid var(--ink); }
+footer .wrap { padding-block: 22px 40px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; color: var(--grey); font-size: 12px; }
+
+@media (max-width: 900px) {
+  .links { display: none; }
+  .stats { grid-template-columns: 1fr 1fr; }
+  .cols, .cards { grid-template-columns: 1fr; }
+  .hero { grid-template-columns: 1fr; }
+  .updated { text-align: left; }
+}
+@media (prefers-reduced-motion: reduce) { .bar > div { transition: none; } }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <span class="brand">TRADINGAGENT</span>
+    <div class="links">
+      <a href="#visao">Visão geral</a>
+      <a href="#carteira">Carteira</a>
+      <a href="#mercado">Mercado</a>
+      <a href="#avaliacoes">Avaliações</a>
+      <a href="#analise">Análise</a>
+    </div>
+    <span class="live label"><span class="dot"></span><span id="live">Ao vivo</span></span>
+  </div>
+</nav>
+
+<main class="wrap">
+
+  <section id="loading" class="loading" aria-live="polite">
+    <div class="loading-head">
+      <div style="display:grid;gap:8px"><span class="label">TradingAgent</span><h2>A carregar a tua carteira</h2></div>
+      <span class="pct num" id="pct">0%</span>
+    </div>
+    <div class="bar"><div id="bar"></div></div>
+    <div class="steps" id="steps"></div>
+  </section>
+
+  <section id="notice" class="notice" hidden>
+    <span class="label">Acesso</span>
+    <h2 id="notice-title">Precisas de um link novo</h2>
+    <p id="notice-text">Envia /dashboard ao bot do TradingAgent no Telegram. Recebes um link pessoal, válido durante 7 dias.</p>
+    <button id="retry" hidden>Tentar outra vez</button>
+  </section>
+
+  <div id="app" hidden>
+    <section class="hero" id="visao">
+      <div>
+        <span class="label">Valor da carteira · <span id="broker"></span></span>
+        <h1 class="num" id="value">—</h1>
+        <div class="meta num"><span id="pl">—</span><span id="plpct">—</span><span id="today">—</span></div>
+      </div>
+      <div class="updated"><span class="label">Atualizado</span><strong class="num" id="updated">—</strong><button id="refresh">Atualizar</button></div>
+    </section>
+
+    <div class="stats">
+      <div class="stat"><span class="label">Investido</span><strong class="num" id="invested">—</strong></div>
+      <div class="stat"><span class="label">Posições</span><strong class="num" id="count">—</strong></div>
+      <div class="stat"><span class="label">Maior posição</span><strong class="num" id="largest">—</strong></div>
+      <div class="stat"><span class="label">Top 3</span><strong class="num" id="top3">—</strong></div>
+    </div>
+
+    <section class="block">
+      <div class="head"><div style="display:grid;gap:8px"><span class="label">Evolução</span><h2>Valor ao longo do tempo</h2></div></div>
+      <div id="chart"></div>
+    </section>
+
+    <section class="block" id="carteira">
+      <div class="head"><div style="display:grid;gap:8px"><span class="label">Carteira</span><h2>Posições</h2></div></div>
+      <div class="tw"><table>
+        <thead><tr><th>Ativo</th><th>Peso</th><th class="r">Valor</th><th class="r">Hoje</th><th class="r">Lucro</th><th class="r">Lucro %</th><th class="r">Preço · médio</th></tr></thead>
+        <tbody id="positions"></tbody>
+      </table></div>
+    </section>
+
+    <section class="block" id="mercado">
+      <div class="head"><div style="display:grid;gap:8px"><span class="label">Mercado</span><h2>Exposição e contexto</h2></div><span class="label" id="market-state">A carregar…</span></div>
+      <div class="cols">
+        <div><span class="label">Exposição por setor</span><div class="rows" id="sectors" style="margin-top:12px"></div></div>
+        <div style="display:grid;gap:36px">
+          <div><span class="label">Índices de referência · última sessão</span><div class="rows" id="indices" style="margin-top:12px"></div></div>
+          <div><span class="label">Resultados nos próximos 14 dias</span><div class="rows" id="earnings" style="margin-top:12px"></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="block" id="avaliacoes">
+      <div class="head"><div style="display:grid;gap:8px"><span class="label">Prestação de contas</span><h2>Avaliações do TradingAgent</h2></div></div>
+      <div class="cards" id="assessments"></div>
+    </section>
+
+    <section class="block" id="analise">
+      <div class="cols">
+        <div><span class="label">Última análise</span><p class="sub" id="analysis-meta" style="margin:8px 0 18px"></p><div class="analysis" id="analysis"></div></div>
+        <div><span class="label">Alertas recentes</span><div id="alerts" style="margin-top:12px;border-top:1px solid var(--rule)"></div></div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<footer><div class="wrap"><span>TRADINGAGENT · só leitura</span><span>Ferramenta de informação e análise. Não é aconselhamento financeiro.</span></div></footer>
+
+<script>
+const API = 'https://swimsuit-octagon-jubilant.ngrok-free.dev/webhook/tradingagent/dashboard';
+const STEPS = ['Verificar o acesso', 'Ligar à corretora', 'Ler as posições', 'Juntar histórico e avaliações', 'Ler cotações e setores', 'Preparar o dashboard'];
+const $ = id => document.getElementById(id);
+let moeda = 'USD';
+
+// Token: chega no link (#t=...), fica guardado neste browser até expirar.
+function token() {
+  const m = location.hash.match(/t=([\w-]+\.[\w-]+\.[\w-]+)/);
+  if (m) {
+    try { localStorage.setItem('ta_token', m[1]); } catch (e) {}
+    history.replaceState(null, '', location.pathname);
+    return m[1];
+  }
+  try { return localStorage.getItem('ta_token'); } catch (e) { return null; }
+}
+function expirado(t) {
+  try { return JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).exp * 1000 < Date.now(); } catch (e) { return true; }
+}
+
+const fmtMoney = (n, c = moeda) => n == null ? '—' : new Intl.NumberFormat('pt-PT', { style: 'currency', currency: c || 'USD', maximumFractionDigits: 2 }).format(n);
+const fmtPct = (n, sign = true) => n == null ? '—' : `${sign && n > 0 ? '+' : ''}${n.toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
+const fmtSigned = n => n == null ? '—' : `${n > 0 ? '+' : ''}${fmtMoney(n)}`;
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+
+function renderSteps(active) {
+  const box = $('steps'); box.replaceChildren();
+  STEPS.forEach((s, i) => {
+    const d = el('div', 'step' + (i < active ? ' done' : i === active ? ' on' : ''));
+    d.append(el('span', 'ic', i < active ? '●' : i === active ? '◐' : '○'), el('span', null, s));
+    box.append(d);
+  });
+  const pct = Math.round((active / STEPS.length) * 100);
+  $('pct').textContent = pct + '%'; $('bar').style.width = pct + '%';
+}
+
+async function pedir(parte, t) {
+  const r = await fetch(`${API}?parte=${parte}`, { headers: { Authorization: `Bearer ${t}`, 'ngrok-skip-browser-warning': '1' } });
+  const body = await r.json().catch(() => ({}));
+  if (r.status === 401) throw Object.assign(new Error(body.erro || 'Link inválido'), { auth: true });
+  if (!r.ok) throw new Error(body.erro || 'Não foi possível ler os dados agora.');
+  return body;
+}
+
+function aviso(titulo, texto, retry) {
+  $('loading').hidden = true; $('app').hidden = true; $('notice').hidden = false;
+  $('notice-title').textContent = titulo; $('notice-text').textContent = texto; $('retry').hidden = !retry;
+}
+
+function renderBase(d) {
+  const r = d.resumo; moeda = r.moeda_conta || 'USD';
+  $('broker').textContent = r.corretora;
+  $('value').textContent = fmtMoney(r.valor_total);
+  $('pl').textContent = `${fmtSigned(r.lucro_total)} desde a compra`;
+  $('plpct').textContent = fmtPct(r.lucro_total_pct);
+  const comDia = d.posicoes.filter(p => p.variacao_dia_pct != null);
+  if (comDia.length) {
+    const imp = comDia.reduce((t, p) => t + p.valor - p.valor / (1 + p.variacao_dia_pct / 100), 0);
+    $('today').textContent = `Hoje ${fmtSigned(imp)}`;
+  } else $('today').textContent = '';
+  $('updated').textContent = new Date(d.atualizado).toLocaleString('pt-PT', { dateStyle: 'short', timeStyle: 'short' });
+  $('invested').textContent = fmtMoney(r.custo_total);
+  $('count').textContent = r.numero_posicoes;
+  const top = d.posicoes[0];
+  $('largest').textContent = top ? `${top.simbolo} ${fmtPct(top.peso_pct, false)}` : '—';
+  $('top3').textContent = fmtPct(d.posicoes.slice(0, 3).reduce((t, p) => t + (p.peso_pct || 0), 0), false);
+
+  const tb = $('positions'); tb.replaceChildren();
+  for (const p of d.posicoes) {
+    const tr = el('tr');
+    const a = el('td'); a.append(el('strong', null, p.simbolo)); if (p.nome && p.nome !== p.simbolo) a.append(el('div', 'sub', p.nome));
+    const w = el('td'); const wb = el('div', 'w num'); const bar = el('i'); bar.style.width = Math.max(2, p.peso_pct * 1.2) + 'px'; wb.append(bar, el('span', null, fmtPct(p.peso_pct, false))); w.append(wb);
+    tr.append(a, w,
+      el('td', 'r num', fmtMoney(p.valor)),
+      el('td', 'r num', fmtPct(p.variacao_dia_pct)),
+      el('td', 'r num', fmtSigned(p.lucro)),
+      el('td', 'r num', fmtPct(p.lucro_pct)),
+      el('td', 'r num', `${fmtMoney(p.preco_atual, p.moeda_preco)} · ${fmtMoney(p.preco_medio, p.moeda_preco)}`));
+    tb.append(tr);
+  }
+  renderChart(d.historico);
+
+  const as = $('assessments'); as.replaceChildren();
+  if (!d.avaliacoes.length) as.append(Object.assign(el('div', 'card'), { textContent: 'Ainda não há avaliações registadas. Aparecem aqui depois do briefing diário ou das tuas perguntas.' }));
+  for (const a of d.avaliacoes) {
+    const c = el('div', 'card');
+    const top = el('div', 'top'); top.append(el('span', 'tk', a.ticker), el('span', 'tag' + (a.tipo === 'risco' ? ' fill' : ''), a.tipo));
+    c.append(top, el('p', null, a.tese));
+    c.append(el('p', 'sub num', `Referência ${fmtMoney(a.preco_referencia)} · agora ${fmtMoney(a.preco_atual)} (${fmtPct(a.variacao_pct)})`));
+    c.append(el('p', 'sub', `${a.leitura} · dia ${a.dias_passados} de ${a.horizonte_dias} · confiança ${a.confianca}`));
+    as.append(c);
+  }
+
+  if (d.ultima_analise) {
+    $('analysis-meta').textContent = `${d.ultima_analise.quando} · ${d.ultima_analise.pergunta}`;
+    $('analysis').textContent = d.ultima_analise.texto;
+  } else $('analysis').textContent = 'Ainda não há análises. Faz uma pergunta ao bot no Telegram.';
+  const al = $('alerts'); al.replaceChildren();
+  if (!d.alertas.length) al.append(el('p', 'alert sub', 'Sem alertas recentes.'));
+  for (const a of d.alertas) { const x = el('div', 'alert'); x.append(el('div', 'label', a.quando), el('div', null, a.texto.replace(/\n\nIsto é só um aviso[\s\S]*$/, ''))); al.append(x); }
+}
+
+function renderChart(h) {
+  const box = $('chart'); box.replaceChildren();
+  if (h.length < 2) {
+    box.append(el('p', 'empty', 'O histórico começa a ser construído a partir de hoje: todas as noites dos dias úteis fica guardada uma fotografia da carteira. O gráfico aparece a partir do segundo dia.'));
+    return;
+  }
+  const W = 1000, H = 220, P = 28, vals = h.flatMap(x => [x.valor, x.custo]);
+  const min = Math.min(...vals), max = Math.max(...vals), span = max - min || 1;
+  const X = i => P + (i / (h.length - 1)) * (W - 2 * P), Y = v => H - P - ((v - min) / span) * (H - 2 * P);
+  const line = k => h.map((x, i) => `${i ? 'L' : 'M'}${X(i).toFixed(1)},${Y(x[k]).toFixed(1)}`).join(' ');
+  const svg = `<svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Evolução do valor da carteira">
+    <line x1="${P}" x2="${W - P}" y1="${H - P}" y2="${H - P}" stroke="#e6e6e6" />
+    <path d="${line('custo')}" fill="none" stroke="#8a8a8a" stroke-width="1.5" stroke-dasharray="4 4" vector-effect="non-scaling-stroke" />
+    <path d="${line('valor')}" fill="none" stroke="#000" stroke-width="2.5" vector-effect="non-scaling-stroke" />
+  </svg>`;
+  box.innerHTML = svg;
+  const leg = el('p', 'sub num', `Linha cheia: valor · tracejado: investido · ${h[0].data} a ${h[h.length - 1].data}`);
+  leg.style.marginTop = '10px'; box.append(leg);
+}
+
+function renderMercado(m) {
+  $('market-state').textContent = 'Sessão de ' + (m.indices[0]?.data_sessao ?? '—');
+  const s = $('sectors'); s.replaceChildren();
+  for (const x of m.exposicao_setores) {
+    const r = el('div', 'row'); const w = el('div', 'w'); const b = el('i'); b.style.width = Math.max(2, x.peso_pct * 2.4) + 'px';
+    w.append(b, el('span', null, x.setor)); r.append(w, el('strong', 'num', fmtPct(x.peso_pct, false))); s.append(r);
+  }
+  const i = $('indices'); i.replaceChildren();
+  for (const x of m.indices) { const r = el('div', 'row'); r.append(el('span', null, x.nome), el('strong', 'num', fmtPct(x.variacao_pct))); i.append(r); }
+  const e = $('earnings'); e.replaceChildren();
+  if (!m.resultados.length) e.append(el('p', 'row sub', 'Nenhuma empresa da carteira apresenta resultados nos próximos 14 dias.'));
+  for (const x of m.resultados) { const r = el('div', 'row'); r.append(el('span', null, `${x.simbolo} · ${x.hora}${x.eps_estimado != null ? ' · EPS estimado ' + x.eps_estimado : ''}`), el('strong', 'num', new Date(x.data).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' }))); e.append(r); }
+}
+
+async function carregar() {
+  const t = token();
+  if (!t || expirado(t)) return aviso('Precisas de um link novo', 'Envia /dashboard ao bot do TradingAgent no Telegram. Recebes um link pessoal, válido durante 7 dias.');
+  $('notice').hidden = true; $('loading').hidden = false; $('app').hidden = true;
+  renderSteps(0);
+  let passo = 1; const tick = setInterval(() => { if (passo < 4) renderSteps(passo++); }, 450);
+  try {
+    const mercado = pedir('mercado', t);
+    const base = await pedir('base', t);
+    clearInterval(tick); renderSteps(4); renderBase(base);
+    $('loading').hidden = true; $('app').hidden = false;
+    $('live').textContent = 'Ao vivo';
+    mercado.then(m => renderMercado(m)).catch(() => { $('market-state').textContent = 'Indisponível agora'; });
+  } catch (err) {
+    clearInterval(tick);
+    if (err.auth) { try { localStorage.removeItem('ta_token'); } catch (e) {} return aviso('O link expirou', 'Envia /dashboard ao bot do TradingAgent no Telegram para receberes um link novo.'); }
+    aviso('Não foi possível carregar', err.message || 'Tenta outra vez dentro de um minuto.', true);
+  }
+}
+$('refresh').addEventListener('click', carregar);
+$('retry').addEventListener('click', carregar);
+carregar();
+</script>
+</body>
+</html>
