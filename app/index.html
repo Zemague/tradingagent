@@ -73,7 +73,7 @@ section.block { border-top: 1px solid var(--ink); padding-block: 56px; }
 .empty { color: var(--grey); padding-block: 18px; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
 
 .tw { overflow-x: auto; }
-.pos-head, .pos { display: grid; grid-template-columns: minmax(150px, 1.4fr) minmax(120px, 1fr) 1fr 0.8fr 1.2fr; gap: 16px; align-items: center; }
+.pos-head, .pos { display: grid; grid-template-columns: minmax(170px, 1.5fr) minmax(190px, 1.2fr) 1fr 0.9fr 1.1fr; gap: 20px; align-items: center; }
 .pos-head { padding-bottom: 12px; border-bottom: 1px solid var(--ink); }
 .pos-head span:nth-child(n+3), .pos > :nth-child(n+3) { text-align: right; }
 .pos { padding-block: 16px; border-bottom: 1px solid var(--rule); }
@@ -81,29 +81,41 @@ section.block { border-top: 1px solid var(--ink); padding-block: 56px; }
 .pos .line { color: var(--grey); font-size: 12.5px; }
 .pos .big { font: 700 16px var(--display); }
 .chg { display: inline-flex; align-items: center; gap: 4px; font-weight: 700; }
-.pl { display: grid; gap: 2px; }
+.pl { display: grid; gap: 2px; justify-items: end; }
 .m { display: none; font: 600 10px var(--body); text-transform: uppercase; letter-spacing: .14em; color: var(--grey); }
-@media (max-width: 700px) { .m { display: block; } .pos > :nth-child(n+3) { display: grid; gap: 2px; justify-items: end; } }
 .up { color: var(--up); }
 .down { color: var(--down); }
 @media (max-width: 700px) {
+  /* Telemóvel: cartão compacto — ativo e valor, peso, e por baixo "hoje" e "desde a compra" lado a lado */
   .pos-head { display: none; }
-  .pos { grid-template-columns: 1fr auto; grid-template-areas: "a v" "w h" "w p"; row-gap: 6px; }
-  .pos > :nth-child(1) { grid-area: a; } .pos > :nth-child(2) { grid-area: w; align-self: end; }
-  .pos > :nth-child(3) { grid-area: v; } .pos > :nth-child(4) { grid-area: h; } .pos > :nth-child(5) { grid-area: p; }
+  .pos { grid-template-columns: 1fr 1fr; grid-template-areas: "a v" "w w" "h p"; gap: 10px 12px; padding-block: 18px; }
+  .pos > :nth-child(1) { grid-area: a; } .pos > :nth-child(2) { grid-area: w; }
+  .pos > :nth-child(3) { grid-area: v; align-self: start; } .pos > :nth-child(4) { grid-area: h; text-align: left !important; } .pos > :nth-child(5) { grid-area: p; }
+  .pos .track { flex: 1 1 auto; }
+  .m { display: block; }
+  .pos > :nth-child(4) .chg { justify-content: flex-start; }
+  .pos > :nth-child(4), .pos > :nth-child(5) { align-self: start; }
+  .pos > :nth-child(5) { display: grid; justify-items: end; }
+  .pos > :nth-child(4) { display: grid; justify-items: start; }
+  .live { display: none !important; }
+  .updated { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .hero .meta { flex-direction: column; gap: 6px; }
 }
 .card .tese.closed { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .link { background: none; border: 0; padding: 0; text-decoration: underline; text-underline-offset: 3px; justify-self: start; color: var(--ink); }
 .link:hover { background: none; color: var(--ink); }
 .w { display: flex; align-items: center; gap: 10px; }
-.w i { display: block; height: 4px; background: var(--ink); min-width: 2px; }
+.track { position: relative; flex: 0 0 var(--tw, 96px); height: 4px; background: var(--rule); }
+.track b { position: absolute; inset: 0 auto 0 0; background: var(--ink); min-width: 2px; }
 .sub { color: var(--grey); font-size: 13px; }
 
 .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; }
 .cols > div { min-width: 0; }
 .rows { display: grid; border-top: 1px solid var(--rule); }
 .row { display: grid; grid-template-columns: 1fr auto; gap: 12px; padding-block: 12px; border-bottom: 1px solid var(--rule); align-items: center; }
-.row .w i { height: 6px; }
+.row.sector { grid-template-columns: minmax(0, 1fr) clamp(60px, 22%, 140px) 64px; gap: 14px; }
+.row.sector .track { flex: none; width: 100%; height: 6px; }
+.row .val { text-align: right; }
 
 .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
 .card { background: var(--paper); padding: 22px; display: grid; gap: 10px; align-content: start; min-width: 0; }
@@ -240,12 +252,16 @@ function expirado(t) {
   try { return JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).exp * 1000 < Date.now(); } catch (e) { return true; }
 }
 
-const fmtMoney = (n, c = moeda) => n == null ? '—' : new Intl.NumberFormat('pt-PT', { style: 'currency', currency: c || 'USD', maximumFractionDigits: 2 }).format(n);
+const fmtMoney = (n, c = moeda) => n == null ? '—' : new Intl.NumberFormat('pt-PT', { style: 'currency', currency: c || 'USD', maximumFractionDigits: 2, useGrouping: 'always' }).format(n);
 const fmtPct = (n, sign = true) => n == null ? '—' : `${sign && n > 0 ? '+' : ''}${n.toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
+const fmtNum = n => n == null ? '—' : n.toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: 'always' });
 const fmtSigned = n => n == null ? '—' : `${n > 0 ? '+' : ''}${fmtMoney(n)}`;
 // Verde para subidas, vermelho para descidas (só nos números com sinal).
 const cor = n => n == null || n === 0 ? '' : n > 0 ? ' up' : ' down';
 const pinta = (id, n) => { $(id).classList.remove('up', 'down'); const c = cor(n).trim(); if (c) $(id).classList.add(c); };
+const SETORES = { Technology: 'Tecnologia', Semiconductors: 'Semicondutores', Banking: 'Banca', 'Financial Services': 'Serviços financeiros', Retail: 'Retalho', Media: 'Media', Pharmaceuticals: 'Farmacêutica', Biotechnology: 'Biotecnologia', 'Health Care': 'Saúde', Energy: 'Energia', Utilities: 'Utilities', Automobiles: 'Automóvel', Telecommunication: 'Telecomunicações', Insurance: 'Seguros', 'Real Estate': 'Imobiliário', 'Aerospace & Defense': 'Aeroespacial e defesa', 'Sem setor (ETF, fundo ou sem dados)': 'Sem setor (ETF ou fundo)' };
+// Barra de peso numa calha de largura fixa, para os textos ficarem alinhados.
+const barra = (v, max) => { const t = el('span', 'track'); const f = el('b'); f.style.width = Math.min(100, Math.max(0, (v || 0) / max * 100)) + '%'; t.append(f); return t; };
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
 
 function renderSteps(active) {
@@ -293,13 +309,13 @@ function renderBase(d) {
 
   const box = $('positions'); box.replaceChildren();
   const seta = n => n == null ? '' : n > 0 ? '▲ ' : n < 0 ? '▼ ' : '';
+  const maxPeso = Math.max(...d.posicoes.map(p => p.peso_pct || 0), 1);
   for (const p of d.posicoes) {
     const row = el('div', 'pos num');
     const a = el('div'); a.append(el('div', 'tk', p.simbolo));
     const qtd = Number(p.quantidade).toLocaleString('pt-PT', { maximumFractionDigits: 4 });
-    a.append(el('div', 'line', `${qtd} × ${fmtMoney(p.preco_atual, p.moeda_preco)} · médio ${fmtMoney(p.preco_medio, p.moeda_preco)}`));
-    const w = el('div', 'w'); const bar = el('i'); bar.style.width = Math.max(2, p.peso_pct * 1.4) + 'px';
-    w.append(bar, el('span', null, `${fmtPct(p.peso_pct, false)} da carteira`));
+    a.append(el('div', 'line', `${qtd} × ${fmtNum(p.preco_atual)} · médio ${fmtNum(p.preco_medio)}`));
+    const w = el('div', 'w'); w.append(barra(p.peso_pct, maxPeso), el('span', null, `${fmtPct(p.peso_pct, false)} da carteira`));
     const v = el('div'); v.append(el('span', 'm', 'Valor'), el('span', 'big', fmtMoney(p.valor)));
     const h = el('div'); h.append(el('span', 'm', 'Hoje'), el('span', 'chg' + cor(p.variacao_dia_pct), p.variacao_dia_pct == null ? '—' : seta(p.variacao_dia_pct) + fmtPct(p.variacao_dia_pct)));
     const pl = el('div', 'pl'); pl.append(el('span', 'm', 'Desde a compra'), el('span', 'chg' + cor(p.lucro), seta(p.lucro) + fmtSigned(p.lucro)), el('span', 'line' + cor(p.lucro_pct), fmtPct(p.lucro_pct)));
@@ -371,14 +387,15 @@ function renderMercado(m) {
   $('market-state').textContent = 'Sessão de ' + (m.indices[0]?.data_sessao ?? '—');
   const s = $('sectors'); s.replaceChildren();
   for (const x of m.exposicao_setores) {
-    const r = el('div', 'row'); const w = el('div', 'w'); const b = el('i'); b.style.width = Math.max(2, x.peso_pct * 2.4) + 'px';
-    w.append(b, el('span', null, x.setor)); r.append(w, el('strong', 'num', fmtPct(x.peso_pct, false))); s.append(r);
+    const r = el('div', 'row sector');
+    r.append(el('span', null, SETORES[x.setor] ?? x.setor), barra(x.peso_pct, 100), el('strong', 'num val', fmtPct(x.peso_pct, false)));
+    s.append(r);
   }
   const i = $('indices'); i.replaceChildren();
   for (const x of m.indices) { const r = el('div', 'row'); r.append(el('span', null, x.nome), el('strong', 'num' + cor(x.variacao_pct), (x.variacao_pct > 0 ? '▲ ' : x.variacao_pct < 0 ? '▼ ' : '') + fmtPct(x.variacao_pct))); i.append(r); }
   const e = $('earnings'); e.replaceChildren();
   if (!m.resultados.length) e.append(el('p', 'row sub', 'Nenhuma empresa da carteira apresenta resultados nos próximos 14 dias.'));
-  for (const x of m.resultados) { const r = el('div', 'row'); r.append(el('span', null, `${x.simbolo} · ${x.hora}${x.eps_estimado != null ? ' · EPS estimado ' + x.eps_estimado : ''}`), el('strong', 'num', new Date(x.data).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' }))); e.append(r); }
+  for (const x of m.resultados) { const r = el('div', 'row'); r.append(el('span', null, `${x.simbolo} · ${x.hora}${x.eps_estimado != null ? ' · lucro por ação estimado ' + fmtMoney(x.eps_estimado, 'USD') : ''}`), el('strong', 'num', new Date(x.data).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' }))); e.append(r); }
 }
 
 async function carregar() {
