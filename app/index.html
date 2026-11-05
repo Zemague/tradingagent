@@ -109,7 +109,15 @@ section.block { border-top: 1px solid var(--ink); padding-block: 56px; }
 .card .tk { font: 700 20px var(--display); }
 .tag { font: 600 10px var(--body); text-transform: uppercase; letter-spacing: .16em; border: 1px solid var(--ink); padding: 3px 8px; white-space: nowrap; }
 .tag.fill { background: var(--ink); color: var(--paper); }
-.alert { padding-block: 14px; border-bottom: 1px solid var(--rule); white-space: pre-wrap; }
+.alert { border-bottom: 1px solid var(--rule); }
+.alert summary { list-style: none; cursor: pointer; display: grid; grid-template-columns: 130px 1fr auto; gap: 16px; align-items: baseline; padding-block: 14px; }
+.alert summary::-webkit-details-marker { display: none; }
+.alert summary::after { content: "+"; font: 700 18px var(--display); }
+.alert[open] summary::after { content: "−"; }
+.alert summary:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+.alert .t { font-weight: 700; }
+.alert .body { white-space: pre-wrap; padding: 0 0 16px 146px; color: var(--grey); }
+@media (max-width: 700px) { .alert summary { grid-template-columns: 1fr auto; } .alert summary .label { grid-column: 1 / -1; } .alert .body { padding-left: 0; } }
 footer { border-top: 1px solid var(--ink); }
 footer .wrap { padding-block: 22px 40px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; color: var(--grey); font-size: 12px; }
 
@@ -318,7 +326,23 @@ function renderBase(d) {
 
   const al = $('alerts'); al.replaceChildren();
   if (!d.alertas.length) al.append(el('p', 'alert sub', 'Sem alertas recentes.'));
-  for (const a of d.alertas) { const x = el('div', 'alert'); x.append(el('div', 'label', a.quando), el('div', null, a.texto.replace(/\n\nIsto é só um aviso[\s\S]*$/, ''))); al.append(x); }
+  for (const a of d.alertas) {
+    const corpo = a.texto.replace(/^Alerta[^\n]*\n+/, '').replace(/\n\n(Isto é só um aviso|Não é uma recomendação)[\s\S]*$/, '').trim();
+    const x = el('details', 'alert'); const sm = el('summary');
+    const t = el('span', 't num');
+    // Título: só os movimentos (ex.: "Carteira ▼ 4,73% · AMD ▼ 12,33%").
+    const mov = corpo.split(/\n+/).map(l => l.match(/^(A tua carteira|Carteira|[A-Z0-9._]+):?\s+(caiu|subiu)?\s*([+\-−]?)(\d+,\d+)%/)).filter(Boolean);
+    if (mov.length) mov.forEach((m, i) => {
+      const desce = m[2] === 'caiu' || m[3] === '-' || m[3] === '−';
+      if (i) t.append(document.createTextNode(' · '));
+      t.append(document.createTextNode(/carteira/i.test(m[1]) ? 'Carteira ' : m[1] + ' '));
+      t.append(el('span', desce ? 'down' : 'up', `${desce ? '▼' : '▲'} ${m[4]}%`));
+    });
+    else t.textContent = corpo.split('\n')[0].slice(0, 80);
+    sm.append(el('span', 'label', a.quando), t);
+    x.append(sm, el('div', 'body', corpo));
+    al.append(x);
+  }
 }
 
 function renderChart(h) {
