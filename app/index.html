@@ -16,6 +16,10 @@
   --body: 'Instrument Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
   color-scheme: light;
 }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --paper: #000000; --ink: #ffffff; --grey: #c4c4c4; --faint: #7a7a7a; --rule: #262626; --soft: #141414; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --paper: #000000; --ink: #ffffff; --grey: #c4c4c4; --faint: #7a7a7a; --rule: #262626; --soft: #141414; color-scheme: dark; }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 body { margin: 0; background: var(--paper); color: var(--ink); font: 500 15px/1.6 var(--body); -webkit-font-smoothing: antialiased; }
@@ -84,9 +88,9 @@ section.block { border-top: 1px solid var(--ink); padding-block: 56px; }
   .pos > :nth-child(1) { grid-area: a; } .pos > :nth-child(2) { grid-area: w; align-self: end; }
   .pos > :nth-child(3) { grid-area: v; } .pos > :nth-child(4) { grid-area: h; } .pos > :nth-child(5) { grid-area: p; }
 }
-.clamp { display: -webkit-box; -webkit-line-clamp: 8; -webkit-box-orient: vertical; overflow: hidden; }
-.more { margin-top: 14px; }
-.card .tese { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.card .tese.closed { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.link { background: none; border: 0; padding: 0; text-decoration: underline; text-underline-offset: 3px; justify-self: start; color: var(--ink); }
+.link:hover { background: none; color: var(--ink); }
 .w { display: flex; align-items: center; gap: 10px; }
 .w i { display: block; height: 4px; background: var(--ink); min-width: 2px; }
 .sub { color: var(--grey); font-size: 13px; }
@@ -103,7 +107,6 @@ section.block { border-top: 1px solid var(--ink); padding-block: 56px; }
 .card .tk { font: 700 20px var(--display); }
 .tag { font: 600 10px var(--body); text-transform: uppercase; letter-spacing: .16em; border: 1px solid var(--ink); padding: 3px 8px; white-space: nowrap; }
 .tag.fill { background: var(--ink); color: var(--paper); }
-.analysis { white-space: pre-wrap; max-width: 75ch; font-size: 16px; line-height: 1.7; }
 .alert { padding-block: 14px; border-bottom: 1px solid var(--rule); white-space: pre-wrap; }
 footer { border-top: 1px solid var(--ink); }
 footer .wrap { padding-block: 22px 40px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; color: var(--grey); font-size: 12px; }
@@ -128,9 +131,9 @@ footer .wrap { padding-block: 22px 40px; display: flex; justify-content: space-b
       <a href="#carteira">Carteira</a>
       <a href="#mercado">Mercado</a>
       <a href="#avaliacoes">Avaliações</a>
-      <a href="#analise">Análise</a>
+      <a href="#alertas">Alertas</a>
     </div>
-    <span class="live label"><span class="dot"></span><span id="live">Ao vivo</span></span>
+    <div style="display:flex;align-items:center;gap:18px"><span class="live label"><span class="dot"></span><span id="live">Ao vivo</span></span><button id="theme" aria-label="Mudar entre modo claro e escuro">Escuro</button></div>
   </div>
 </nav>
 
@@ -196,11 +199,9 @@ footer .wrap { padding-block: 22px 40px; display: flex; justify-content: space-b
       <div class="cards" id="assessments"></div>
     </section>
 
-    <section class="block" id="analise">
-      <div class="cols">
-        <div><span class="label">Última análise</span><p class="sub" id="analysis-meta" style="margin:8px 0 18px"></p><div class="analysis clamp" id="analysis"></div><button class="more" id="more" hidden>Ler tudo</button></div>
-        <div><span class="label">Alertas recentes</span><div id="alerts" style="margin-top:12px;border-top:1px solid var(--rule)"></div></div>
-      </div>
+    <section class="block" id="alertas">
+      <div class="head"><div style="display:grid;gap:8px"><span class="label">Alertas</span><h2>Alertas recentes</h2></div></div>
+      <div id="alerts" style="border-top:1px solid var(--rule)"></div>
     </section>
   </div>
 </main>
@@ -295,18 +296,18 @@ function renderBase(d) {
   for (const a of d.avaliacoes) {
     const c = el('div', 'card');
     const top = el('div', 'top'); top.append(el('span', 'tk', a.ticker), el('span', 'tag' + (a.tipo === 'risco' ? ' fill' : ''), a.tipo));
-    c.append(top, el('p', 'tese', a.tese));
+    const tese = el('p', 'tese closed', a.tese);
+    c.append(top, tese);
+    if (String(a.tese).length > 110) {
+      const b = el('button', 'link label', 'Ler mais');
+      b.addEventListener('click', () => { const fechado = tese.classList.toggle('closed'); b.textContent = fechado ? 'Ler mais' : 'Ler menos'; });
+      c.append(b);
+    }
     c.append(el('p', 'sub num', `Referência ${fmtMoney(a.preco_referencia)} · agora ${fmtMoney(a.preco_atual)} (${fmtPct(a.variacao_pct)})`));
     c.append(el('p', 'sub', `${a.leitura} · dia ${a.dias_passados} de ${a.horizonte_dias} · confiança ${a.confianca}`));
     as.append(c);
   }
 
-  if (d.ultima_analise) {
-    $('analysis-meta').textContent = `${d.ultima_analise.quando} · ${d.ultima_analise.pergunta}`;
-    $('analysis').textContent = d.ultima_analise.texto;
-    $('analysis').classList.add('clamp');
-    $('more').hidden = d.ultima_analise.texto.length < 600;
-  } else $('analysis').textContent = 'Ainda não há análises. Faz uma pergunta ao bot no Telegram.';
   const al = $('alerts'); al.replaceChildren();
   if (!d.alertas.length) al.append(el('p', 'alert sub', 'Sem alertas recentes.'));
   for (const a of d.alertas) { const x = el('div', 'alert'); x.append(el('div', 'label', a.quando), el('div', null, a.texto.replace(/\n\nIsto é só um aviso[\s\S]*$/, ''))); al.append(x); }
@@ -323,9 +324,9 @@ function renderChart(h) {
   const X = i => P + (i / (h.length - 1)) * (W - 2 * P), Y = v => H - P - ((v - min) / span) * (H - 2 * P);
   const line = k => h.map((x, i) => `${i ? 'L' : 'M'}${X(i).toFixed(1)},${Y(x[k]).toFixed(1)}`).join(' ');
   const svg = `<svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Evolução do valor da carteira">
-    <line x1="${P}" x2="${W - P}" y1="${H - P}" y2="${H - P}" stroke="#e6e6e6" />
-    <path d="${line('custo')}" fill="none" stroke="#8a8a8a" stroke-width="1.5" stroke-dasharray="4 4" vector-effect="non-scaling-stroke" />
-    <path d="${line('valor')}" fill="none" stroke="#000" stroke-width="2.5" vector-effect="non-scaling-stroke" />
+    <line x1="${P}" x2="${W - P}" y1="${H - P}" y2="${H - P}" stroke="var(--rule)" />
+    <path d="${line('custo')}" fill="none" stroke="var(--faint)" stroke-width="1.5" stroke-dasharray="4 4" vector-effect="non-scaling-stroke" />
+    <path d="${line('valor')}" fill="none" stroke="var(--ink)" stroke-width="2.5" vector-effect="non-scaling-stroke" />
   </svg>`;
   box.innerHTML = svg;
   const leg = el('p', 'sub num', `Linha cheia: valor · tracejado: investido · ${h[0].data} a ${h[h.length - 1].data}`);
@@ -365,7 +366,19 @@ async function carregar() {
     aviso('Não foi possível carregar', err.message || 'Tenta outra vez dentro de um minuto.', true);
   }
 }
-$('more').addEventListener('click', () => { $('analysis').classList.remove('clamp'); $('more').hidden = true; });
+// Tema: segue o sistema até a pessoa escolher; a escolha fica guardada neste browser.
+function aplicaTema(t) {
+  if (t) document.documentElement.setAttribute('data-theme', t); else document.documentElement.removeAttribute('data-theme');
+  const escuro = t ? t === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  $('theme').textContent = escuro ? 'Claro' : 'Escuro';
+}
+let tema = null; try { tema = localStorage.getItem('ta_tema'); } catch (e) {}
+aplicaTema(tema);
+$('theme').addEventListener('click', () => {
+  tema = $('theme').textContent === 'Escuro' ? 'dark' : 'light';
+  try { localStorage.setItem('ta_tema', tema); } catch (e) {}
+  aplicaTema(tema);
+});
 $('refresh').addEventListener('click', carregar);
 $('retry').addEventListener('click', carregar);
 carregar();
