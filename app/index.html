@@ -17,6 +17,7 @@
   color-scheme: light;
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 body { margin: 0; background: var(--paper); color: var(--ink); font: 500 15px/1.6 var(--body); -webkit-font-smoothing: antialiased; }
 .wrap { max-width: 1280px; margin: 0 auto; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); }
 h1, h2 { font-family: var(--display); font-weight: 700; letter-spacing: -0.03em; margin: 0; text-wrap: balance; }
@@ -68,10 +69,24 @@ section.block { border-top: 1px solid var(--ink); padding-block: 56px; }
 .empty { color: var(--grey); padding-block: 18px; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
 
 .tw { overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; min-width: 680px; }
-th { text-align: left; font: 600 11px var(--body); text-transform: uppercase; letter-spacing: .16em; color: var(--grey); padding: 0 12px 12px 0; border-bottom: 1px solid var(--ink); }
-td { padding: 14px 12px 14px 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
-td.r, th.r { text-align: right; }
+.pos-head, .pos { display: grid; grid-template-columns: minmax(150px, 1.4fr) minmax(120px, 1fr) 1fr 0.8fr 1.2fr; gap: 16px; align-items: center; }
+.pos-head { padding-bottom: 12px; border-bottom: 1px solid var(--ink); }
+.pos-head span:nth-child(n+3), .pos > :nth-child(n+3) { text-align: right; }
+.pos { padding-block: 16px; border-bottom: 1px solid var(--rule); }
+.pos .tk { font: 700 18px var(--display); letter-spacing: -0.01em; }
+.pos .line { color: var(--grey); font-size: 12.5px; }
+.pos .big { font: 700 16px var(--display); }
+.chg { display: inline-flex; align-items: center; gap: 4px; font-weight: 700; }
+.pl { display: grid; gap: 2px; }
+@media (max-width: 700px) {
+  .pos-head { display: none; }
+  .pos { grid-template-columns: 1fr auto; grid-template-areas: "a v" "w h" "w p"; row-gap: 6px; }
+  .pos > :nth-child(1) { grid-area: a; } .pos > :nth-child(2) { grid-area: w; align-self: end; }
+  .pos > :nth-child(3) { grid-area: v; } .pos > :nth-child(4) { grid-area: h; } .pos > :nth-child(5) { grid-area: p; }
+}
+.clamp { display: -webkit-box; -webkit-line-clamp: 8; -webkit-box-orient: vertical; overflow: hidden; }
+.more { margin-top: 14px; }
+.card .tese { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .w { display: flex; align-items: center; gap: 10px; }
 .w i { display: block; height: 4px; background: var(--ink); min-width: 2px; }
 .sub { color: var(--grey); font-size: 13px; }
@@ -161,10 +176,8 @@ footer .wrap { padding-block: 22px 40px; display: flex; justify-content: space-b
 
     <section class="block" id="carteira">
       <div class="head"><div style="display:grid;gap:8px"><span class="label">Carteira</span><h2>Posições</h2></div></div>
-      <div class="tw"><table>
-        <thead><tr><th>Ativo</th><th>Peso</th><th class="r">Valor</th><th class="r">Hoje</th><th class="r">Lucro</th><th class="r">Lucro %</th><th class="r">Preço · médio</th></tr></thead>
-        <tbody id="positions"></tbody>
-      </table></div>
+      <div class="pos-head label"><span>Ativo</span><span>Peso</span><span>Valor</span><span>Hoje</span><span>Desde a compra</span></div>
+      <div id="positions"></div>
     </section>
 
     <section class="block" id="mercado">
@@ -185,7 +198,7 @@ footer .wrap { padding-block: 22px 40px; display: flex; justify-content: space-b
 
     <section class="block" id="analise">
       <div class="cols">
-        <div><span class="label">Última análise</span><p class="sub" id="analysis-meta" style="margin:8px 0 18px"></p><div class="analysis" id="analysis"></div></div>
+        <div><span class="label">Última análise</span><p class="sub" id="analysis-meta" style="margin:8px 0 18px"></p><div class="analysis clamp" id="analysis"></div><button class="more" id="more" hidden>Ler tudo</button></div>
         <div><span class="label">Alertas recentes</span><div id="alerts" style="margin-top:12px;border-top:1px solid var(--rule)"></div></div>
       </div>
     </section>
@@ -261,18 +274,19 @@ function renderBase(d) {
   $('largest').textContent = top ? `${top.simbolo} ${fmtPct(top.peso_pct, false)}` : '—';
   $('top3').textContent = fmtPct(d.posicoes.slice(0, 3).reduce((t, p) => t + (p.peso_pct || 0), 0), false);
 
-  const tb = $('positions'); tb.replaceChildren();
+  const box = $('positions'); box.replaceChildren();
+  const seta = n => n == null ? '' : n > 0 ? '▲ ' : n < 0 ? '▼ ' : '';
   for (const p of d.posicoes) {
-    const tr = el('tr');
-    const a = el('td'); a.append(el('strong', null, p.simbolo)); if (p.nome && p.nome !== p.simbolo) a.append(el('div', 'sub', p.nome));
-    const w = el('td'); const wb = el('div', 'w num'); const bar = el('i'); bar.style.width = Math.max(2, p.peso_pct * 1.2) + 'px'; wb.append(bar, el('span', null, fmtPct(p.peso_pct, false))); w.append(wb);
-    tr.append(a, w,
-      el('td', 'r num', fmtMoney(p.valor)),
-      el('td', 'r num', fmtPct(p.variacao_dia_pct)),
-      el('td', 'r num', fmtSigned(p.lucro)),
-      el('td', 'r num', fmtPct(p.lucro_pct)),
-      el('td', 'r num', `${fmtMoney(p.preco_atual, p.moeda_preco)} · ${fmtMoney(p.preco_medio, p.moeda_preco)}`));
-    tb.append(tr);
+    const row = el('div', 'pos num');
+    const a = el('div'); a.append(el('div', 'tk', p.simbolo));
+    const qtd = Number(p.quantidade).toLocaleString('pt-PT', { maximumFractionDigits: 4 });
+    a.append(el('div', 'line', `${qtd} × ${fmtMoney(p.preco_atual, p.moeda_preco)} · médio ${fmtMoney(p.preco_medio, p.moeda_preco)}`));
+    const w = el('div', 'w'); const bar = el('i'); bar.style.width = Math.max(2, p.peso_pct * 1.4) + 'px';
+    w.append(bar, el('span', null, fmtPct(p.peso_pct, false)));
+    const v = el('div', 'big', fmtMoney(p.valor));
+    const h = el('div', 'chg', p.variacao_dia_pct == null ? '—' : seta(p.variacao_dia_pct) + fmtPct(p.variacao_dia_pct));
+    const pl = el('div', 'pl'); pl.append(el('span', 'chg', seta(p.lucro) + fmtSigned(p.lucro)), el('span', 'line', fmtPct(p.lucro_pct)));
+    row.append(a, w, v, h, pl); box.append(row);
   }
   renderChart(d.historico);
 
@@ -281,7 +295,7 @@ function renderBase(d) {
   for (const a of d.avaliacoes) {
     const c = el('div', 'card');
     const top = el('div', 'top'); top.append(el('span', 'tk', a.ticker), el('span', 'tag' + (a.tipo === 'risco' ? ' fill' : ''), a.tipo));
-    c.append(top, el('p', null, a.tese));
+    c.append(top, el('p', 'tese', a.tese));
     c.append(el('p', 'sub num', `Referência ${fmtMoney(a.preco_referencia)} · agora ${fmtMoney(a.preco_atual)} (${fmtPct(a.variacao_pct)})`));
     c.append(el('p', 'sub', `${a.leitura} · dia ${a.dias_passados} de ${a.horizonte_dias} · confiança ${a.confianca}`));
     as.append(c);
@@ -290,6 +304,8 @@ function renderBase(d) {
   if (d.ultima_analise) {
     $('analysis-meta').textContent = `${d.ultima_analise.quando} · ${d.ultima_analise.pergunta}`;
     $('analysis').textContent = d.ultima_analise.texto;
+    $('analysis').classList.add('clamp');
+    $('more').hidden = d.ultima_analise.texto.length < 600;
   } else $('analysis').textContent = 'Ainda não há análises. Faz uma pergunta ao bot no Telegram.';
   const al = $('alerts'); al.replaceChildren();
   if (!d.alertas.length) al.append(el('p', 'alert sub', 'Sem alertas recentes.'));
@@ -349,6 +365,7 @@ async function carregar() {
     aviso('Não foi possível carregar', err.message || 'Tenta outra vez dentro de um minuto.', true);
   }
 }
+$('more').addEventListener('click', () => { $('analysis').classList.remove('clamp'); $('more').hidden = true; });
 $('refresh').addEventListener('click', carregar);
 $('retry').addEventListener('click', carregar);
 carregar();
