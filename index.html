@@ -8,117 +8,113 @@
 <meta name="description" content="TradingAgent liga-se à tua corretora e diz-te no Telegram o que mudou na tua carteira, porquê e o que acompanhar. Análise com IA, só leitura.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Sora:wght@500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400;6..96,500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-/* Página de produto numa coluna larga: tese no topo, dois públicos, prova (conversas), confiança, roteiro. */
+/* Monocromático, editorial: muito branco, filetes finos, etiquetas em maiúsculas espaçadas, títulos em Didone. Só tema claro, por opção. */
 :root {
-  --bg: #f5f6f8; --surface: #ffffff; --ink: #121620; --muted: #5a6271; --line: #e1e4ea;
-  --accent: #1d5fd1; --accent-soft: #e8effb; --me: #1d5fd1; --me-text: #ffffff; --bot: #ffffff;
-  --down: #bf3a2b; --up: #1b7a44; --band: #0f1724; --band-text: #e8ecf3; --band-muted: #9aa5b8;
-  --display: Sora, 'IBM Plex Sans', system-ui, sans-serif; --body: 'IBM Plex Sans', system-ui, sans-serif; --mono: 'IBM Plex Mono', ui-monospace, monospace;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #0d1016; --surface: #151a22; --ink: #e8ebf1; --muted: #9aa2b0; --line: #283040;
-    --accent: #72a9ff; --accent-soft: #172438; --me: #2b66cc; --me-text: #ffffff; --bot: #1b222d;
-    --down: #f07a6c; --up: #52c27f; --band: #080b10; --band-text: #e8ecf3; --band-muted: #8f9ab0; color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #0d1016; --surface: #151a22; --ink: #e8ebf1; --muted: #9aa2b0; --line: #283040;
-  --accent: #72a9ff; --accent-soft: #172438; --me: #2b66cc; --me-text: #ffffff; --bot: #1b222d;
-  --down: #f07a6c; --up: #52c27f; --band: #080b10; --band-text: #e8ecf3; --band-muted: #8f9ab0; color-scheme: dark;
+  --paper: #ffffff; --ink: #000000; --grey: #6b6b6b; --rule: #e6e6e6; --soft: #f5f5f5;
+  --display: 'Bodoni Moda', 'Didot', 'Bodoni 72', Georgia, serif;
+  --body: 'Instrument Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  color-scheme: light;
 }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.65 var(--body); }
-a { color: var(--accent); }
-.wrap { max-width: 1040px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
-h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; letter-spacing: -0.015em; }
-h1 { font-size: clamp(36px, 6.2vw, 60px); line-height: 1.04; font-weight: 700; }
-h2 { font-size: clamp(26px, 3.6vw, 34px); line-height: 1.15; font-weight: 600; }
-h3 { font-size: 18px; font-weight: 600; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 400 15px/1.7 var(--body); -webkit-font-smoothing: antialiased; }
+a { color: var(--ink); }
+.wrap { max-width: 1120px; margin: 0 auto; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); }
+h1, h2 { font-family: var(--display); font-weight: 400; text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: clamp(44px, 8vw, 96px); line-height: 0.98; }
+h2 { font-size: clamp(30px, 4.4vw, 48px); line-height: 1.05; }
+h3 { font: 600 12px/1.4 var(--body); text-transform: uppercase; letter-spacing: .14em; margin: 0; }
 p { margin: 0; }
-.label { font: 500 12px var(--mono); text-transform: uppercase; letter-spacing: .09em; color: var(--muted); }
-.muted { color: var(--muted); }
+.label { font: 500 11px var(--body); text-transform: uppercase; letter-spacing: .2em; color: var(--grey); }
+.muted { color: var(--grey); }
 
-/* Hero escuro: o produto é um terminal de carteira no bolso */
-.hero { background: var(--band); color: var(--band-text); }
-.hero .wrap { padding-block: 72px 64px; display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 48px; align-items: center; }
-.hero .label { color: var(--band-muted); }
-.hero .lead { color: var(--band-muted); font-size: 19px; max-width: 34em; }
-.hero-copy { display: grid; gap: 20px; min-width: 0; }
-.ticker { font: 500 13px var(--mono); color: var(--band-muted); display: flex; flex-wrap: wrap; gap: 6px 18px; font-variant-numeric: tabular-nums; }
-.ticker b { color: var(--band-text); font-weight: 500; }
-.ticker .down { color: #f07a6c; } .ticker .up { color: #52c27f; }
-.phone { background: #1a2230; border: 1px solid #2a3446; border-radius: 22px; padding: 16px; display: grid; gap: 10px; min-width: 0; }
-.phone .msg.bot { background: #222c3c; border-color: #2e3a4e; color: #e8ecf3; }
+/* Topo */
+.top { border-bottom: 1px solid var(--ink); }
+.top .wrap { display: flex; justify-content: space-between; align-items: center; padding-block: 18px; gap: 16px; }
+.mark { font: 500 22px var(--display); letter-spacing: .02em; }
+.hero .wrap { padding-block: 96px 88px; display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 64px; align-items: end; }
+.hero-copy { display: grid; gap: 28px; min-width: 0; }
+.lead { font-size: 17px; max-width: 32em; color: var(--ink); }
+.ticker { display: flex; flex-wrap: wrap; gap: 6px 28px; font: 500 12px var(--body); letter-spacing: .08em; font-variant-numeric: tabular-nums; border-top: 1px solid var(--rule); padding-top: 16px; }
+.ticker span { color: var(--grey); }
+.ticker b { color: var(--ink); font-weight: 600; margin-right: 6px; }
+.phone { border: 1px solid var(--ink); padding: 22px; display: grid; gap: 12px; min-width: 0; }
 
-main section { padding-block: 64px; border-bottom: 1px solid var(--line); }
-.head { display: grid; gap: 10px; margin-bottom: 28px; max-width: 40em; }
+main section { border-top: 1px solid var(--ink); }
+main section .wrap { padding-block: 80px; }
+.head { display: grid; grid-template-columns: 220px 1fr; gap: 32px; margin-bottom: 48px; align-items: baseline; }
+.head .sub { grid-column: 2; color: var(--grey); margin-top: -16px; }
 
-.two { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-.persona { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 26px; display: grid; gap: 14px; align-content: start; min-width: 0; }
-.persona ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+.two { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid var(--rule); }
+.persona { padding: 32px 32px 8px 0; display: grid; gap: 16px; align-content: start; min-width: 0; }
+.persona + .persona { padding-left: 32px; border-left: 1px solid var(--rule); }
+.persona .big { font: 400 26px/1.2 var(--display); }
+.persona ul { margin: 0; padding: 0; list-style: none; display: grid; }
+.persona li { padding-block: 10px; border-bottom: 1px solid var(--rule); }
 
-.features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; border-top: 1px solid var(--line); }
-.feature { padding: 22px 22px 22px 0; border-bottom: 1px solid var(--line); display: grid; gap: 6px; align-content: start; min-width: 0; }
-.feature p { color: var(--muted); font-size: 15.5px; }
+.features { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--rule); }
+.feature { padding: 28px 28px 28px 0; border-bottom: 1px solid var(--rule); display: grid; gap: 10px; align-content: start; min-width: 0; }
+.feature p { color: var(--grey); }
 
-.chats { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-.chat { background: var(--accent-soft); border-radius: 18px; padding: 18px; display: grid; gap: 10px; align-content: start; min-width: 0; }
-.msg { max-width: 90%; padding: 10px 14px; border-radius: 16px; font-size: 15px; line-height: 1.5; display: grid; gap: 8px; }
-.msg.me { justify-self: end; background: var(--me); color: var(--me-text); border-bottom-right-radius: 4px; }
-.msg.bot { justify-self: start; background: var(--bot); border: 1px solid var(--line); border-bottom-left-radius: 4px; }
-.down { color: var(--down); font-weight: 600; }
-.up { color: var(--up); font-weight: 600; }
+.chats { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
+.chat { background: var(--paper); padding: 28px; display: grid; gap: 12px; align-content: start; min-width: 0; }
+.msg { max-width: 90%; padding: 12px 16px; font-size: 14.5px; line-height: 1.55; display: grid; gap: 8px; }
+.msg.me { justify-self: end; background: var(--ink); color: var(--paper); }
+.msg.bot { justify-self: start; background: var(--soft); }
+.down, .up { font-weight: 600; font-variant-numeric: tabular-nums; }
 
-.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; counter-reset: s; }
-.step { counter-increment: s; display: grid; gap: 8px; align-content: start; }
-.step::before { content: "0" counter(s); font: 500 13px var(--mono); color: var(--accent); }
-.step p { color: var(--muted); }
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; counter-reset: s; }
+.step { counter-increment: s; display: grid; gap: 12px; align-content: start; border-top: 1px solid var(--ink); padding-top: 18px; }
+.step::before { content: counter(s, decimal-leading-zero); font: 400 40px/1 var(--display); }
+.step p { color: var(--grey); }
 
-.trust { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
-.trust div { display: grid; gap: 6px; align-content: start; }
-.trust p { color: var(--muted); font-size: 15.5px; }
+.trust { display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px; }
+.trust div { display: grid; gap: 10px; align-content: start; }
+.trust p { color: var(--grey); }
 
-.road { display: grid; gap: 0; border-top: 1px solid var(--line); }
-.road div { display: grid; grid-template-columns: 140px 1fr; gap: 16px; padding-block: 16px; border-bottom: 1px solid var(--line); }
-.pill { font: 500 12px var(--mono); text-transform: uppercase; letter-spacing: .06em; padding: 3px 10px; border-radius: 999px; justify-self: start; align-self: start; }
-.pill.on { background: var(--accent-soft); color: var(--accent); }
-.pill.next { border: 1px solid var(--line); color: var(--muted); }
+.road { display: grid; border-top: 1px solid var(--rule); }
+.road div { display: grid; grid-template-columns: 220px 1fr; gap: 32px; padding-block: 18px; border-bottom: 1px solid var(--rule); }
+.pill { font: 500 11px var(--body); text-transform: uppercase; letter-spacing: .2em; color: var(--grey); }
+.pill.on { color: var(--ink); font-weight: 600; }
 
-.cta { padding-block: 64px; display: grid; gap: 14px; justify-items: start; }
-.btn { display: inline-block; background: var(--accent); color: #fff; text-decoration: none; font-weight: 600; padding: 12px 20px; border-radius: 10px; }
-.btn:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
-footer { color: var(--muted); font-size: 14px; padding-block: 0 48px; }
+.cta { border-top: 1px solid var(--ink); }
+.cta .wrap { padding-block: 96px; display: grid; gap: 18px; justify-items: center; text-align: center; }
+footer { border-top: 1px solid var(--rule); }
+footer .wrap { padding-block: 24px 40px; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; color: var(--grey); font-size: 12px; letter-spacing: .04em; }
+a:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
 
-@media (max-width: 860px) {
+@media (max-width: 900px) {
   .hero .wrap, .two, .chats { grid-template-columns: 1fr; }
-  .features { grid-template-columns: 1fr 1fr; }
-  .steps, .trust { grid-template-columns: 1fr 1fr; }
+  .persona + .persona { padding-left: 0; border-left: 0; }
+  .features, .steps, .trust { grid-template-columns: 1fr 1fr; }
+  .head, .road div { grid-template-columns: 1fr; gap: 12px; }
+  .head .sub { grid-column: 1; margin-top: 0; }
 }
-@media (max-width: 540px) {
+@media (max-width: 560px) {
   .features, .steps, .trust { grid-template-columns: 1fr; }
   .feature { padding-right: 0; }
-  .road div { grid-template-columns: 1fr; gap: 6px; }
-  .hero .wrap { padding-block: 48px 44px; }
-  .msg { max-width: 95%; }
+  .hero .wrap { padding-block: 56px; gap: 40px; }
+  main section .wrap { padding-block: 56px; }
+  .chat { padding: 20px; }
+  .msg { max-width: 96%; }
 }
 </style>
 </head>
 <body>
 
+<div class="top"><div class="wrap"><span class="mark">TRADINGAGENT</span><span class="label">Acesso por convite</span></div></div>
 <header class="hero">
   <div class="wrap">
     <div class="hero-copy">
-      <span class="label">TradingAgent · análise de carteira com IA</span>
+      <span class="label">Análise de carteira com IA</span>
       <h1>A tua carteira, explicada todos os dias.</h1>
       <p class="lead">O TradingAgent liga-se à tua corretora, cruza as tuas posições com notícias e dados de mercado, e diz-te no Telegram o que mudou, porquê e o que acompanhar. Só lê. Nunca negoceia.</p>
       <div class="ticker" aria-hidden="true">
-        <span><b>SPY</b> <span class="down">−0,99%</span></span>
-        <span><b>QQQ</b> <span class="down">−2,75%</span></span>
-        <span><b>SOXX</b> <span class="down">−6,29%</span></span>
-        <span><b>VGK</b> <span class="up">+0,31%</span></span>
+        <span><b>SPY</b>−0,99%</span>
+        <span><b>QQQ</b>−2,75%</span>
+        <span><b>SOXX</b>−6,29%</span>
+        <span><b>VGK</b>+0,31%</span>
       </div>
     </div>
     <div class="phone" aria-label="Exemplo de briefing da manhã">
@@ -142,7 +138,7 @@ footer { color: var(--muted); font-size: 14px; padding-block: 0 48px; }
     <div class="two">
       <div class="persona">
         <span class="label">Investidores e empresários</span>
-        <h3>Uma visão completa, sem abrir cinco aplicações.</h3>
+        <p class="big">Uma visão completa, sem abrir cinco aplicações.</p>
         <ul>
           <li>Posições, pesos, custo médio e lucro, direto da corretora.</li>
           <li>Exposição por setor e concentração de risco.</li>
@@ -153,7 +149,7 @@ footer { color: var(--muted); font-size: 14px; padding-block: 0 48px; }
       </div>
       <div class="persona">
         <span class="label">O passo além do S&amp;P 500</span>
-        <h3>Já investes num índice. Agora queres perceber o que tens.</h3>
+        <p class="big">Já investes num índice. Agora queres perceber o que tens.</p>
         <ul>
           <li>Pergunta "porque é que a minha carteira caiu hoje?" e recebe uma resposta clara.</li>
           <li>Os termos técnicos vêm explicados e as percentagens traduzidas em euros ou dólares.</li>
@@ -187,7 +183,7 @@ footer { color: var(--muted); font-size: 14px; padding-block: 0 48px; }
     <div class="head">
       <span class="label">Exemplos</span>
       <h2>Como é falar com o TradingAgent.</h2>
-      <p class="muted">Conversas ilustrativas, com números de uma carteira de teste.</p>
+      <p class="sub">Conversas ilustrativas, com números de uma carteira de teste.</p>
     </div>
     <div class="chats">
       <div class="chat">
@@ -283,13 +279,12 @@ footer { color: var(--muted); font-size: 14px; padding-block: 0 48px; }
 </section>
 </main>
 
-<div class="wrap">
-  <div class="cta">
-    <h2>Queres experimentar?</h2>
-    <p class="muted">O TradingAgent está em fase de testes privados, com acesso por convite.</p>
-  </div>
-  <footer>TradingAgent é uma ferramenta de informação e análise. Não é aconselhamento financeiro: as decisões de investimento são sempre tuas.</footer>
-</div>
+<div class="cta"><div class="wrap">
+  <span class="label">Testes privados</span>
+  <h2>Queres experimentar?</h2>
+  <p class="muted">O acesso é por convite.</p>
+</div></div>
+<footer><div class="wrap"><span>TRADINGAGENT</span><span>Ferramenta de informação e análise. Não é aconselhamento financeiro.</span></div></footer>
 
 </body>
 </html>
