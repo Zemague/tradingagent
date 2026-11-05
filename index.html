@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TradingAgent</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Um assistente no Telegram que te explica, em linguagem simples, o que se passa com os teus investimentos.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Sora:wght@600;700&display=swap" rel="stylesheet">
+<style>
+/* Uma coluna estreita, como um README; as conversas parecem o Telegram. */
+:root {
+  --bg: #f6f7f9; --surface: #ffffff; --text: #161a22; --muted: #5d6573; --line: #e2e5eb;
+  --accent: #2a6fdb; --accent-soft: #e9f0fc; --me: #2a6fdb; --me-text: #ffffff; --bot: #ffffff; --down: #c0392b; --up: #1e7b45;
+  --display: Sora, 'IBM Plex Sans', system-ui, sans-serif; --body: 'IBM Plex Sans', system-ui, sans-serif; --mono: 'IBM Plex Mono', ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1218; --surface: #171c24; --text: #e7eaf0; --muted: #9ba3b1; --line: #2a313d;
+    --accent: #6ea8ff; --accent-soft: #18263b; --me: #2f6fd6; --me-text: #ffffff; --bot: #1d2430; --down: #f0786b; --up: #4cc27a; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1218; --surface: #171c24; --text: #e7eaf0; --muted: #9ba3b1; --line: #2a313d;
+  --accent: #6ea8ff; --accent-soft: #18263b; --me: #2f6fd6; --me-text: #ffffff; --bot: #1d2430; --down: #f0786b; --up: #4cc27a; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 17px/1.65 var(--body); }
+a { color: var(--accent); }
+.page { max-width: 720px; margin: 0 auto; padding-block: 56px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 48px; }
+h1, h2 { font-family: var(--display); text-wrap: balance; letter-spacing: -0.01em; margin: 0; }
+h1 { font-size: clamp(32px, 7vw, 44px); line-height: 1.1; }
+h2 { font-size: 24px; }
+p { margin: 0; }
+section { display: grid; gap: 16px; }
+.lead { font-size: 19px; color: var(--muted); }
+.label { font: 500 12px var(--mono); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+ul, ol { margin: 0; padding-left: 22px; display: grid; gap: 8px; }
+code { font: 15px var(--mono); background: var(--accent-soft); padding: 1px 6px; border-radius: 6px; }
+
+.chat { background: var(--accent-soft); border-radius: 18px; padding: 18px; display: grid; gap: 10px; }
+.chat .label { margin-bottom: 2px; }
+.msg { max-width: 88%; padding: 10px 14px; border-radius: 16px; font-size: 15.5px; line-height: 1.5; display: grid; gap: 8px; }
+.msg.me { justify-self: end; background: var(--me); color: var(--me-text); border-bottom-right-radius: 4px; }
+.msg.bot { justify-self: start; background: var(--bot); border: 1px solid var(--line); border-bottom-left-radius: 4px; }
+.down { color: var(--down); font-weight: 600; }
+.up { color: var(--up); font-weight: 600; }
+.chats { display: grid; gap: 20px; }
+
+.never { border: 1px solid var(--line); background: var(--surface); border-radius: 14px; padding: 18px 20px; }
+footer { color: var(--muted); font-size: 14px; border-top: 1px solid var(--line); padding-top: 20px; }
+@media (max-width: 480px) { .msg { max-width: 94%; } body { font-size: 16px; } }
+</style>
+</head>
+<body>
+<div class="page">
+
+<header style="display:grid;gap:14px">
+  <span class="label">Telegram · só leitura</span>
+  <h1>TradingAgent</h1>
+  <p class="lead">Um assistente no Telegram que te explica, em linguagem simples, o que se passa com os teus investimentos. Não precisas de perceber de finanças.</p>
+</header>
+
+<section>
+  <h2>O que faz</h2>
+  <ul>
+    <li><strong>Responde a perguntas</strong> sobre a tua carteira, como falarias com uma pessoa.</li>
+    <li><strong>Envia um resumo todas as manhãs</strong> (dias úteis, 09:00) com as três coisas mais importantes.</li>
+    <li><strong>Avisa-te durante o dia</strong> se uma ação tua sobe ou desce muito (5% ou mais), ou se a carteira toda mexe 3% ou mais.</li>
+    <li><strong>Lembra-se da conversa.</strong> Podes perguntar "e a AMD?" ou "porquê?" sem repetir tudo.</li>
+    <li><strong>Explica os termos técnicos</strong> e diz quanto dinheiro está em causa, não só percentagens.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Como começar</h2>
+  <ol>
+    <li>Pede acesso ao administrador. Ele precisa do teu ID do Telegram e de uma chave <em>só de leitura</em> da tua corretora (Trading 212 ou Alpaca).</li>
+    <li>Abre a conversa com o bot no Telegram.</li>
+    <li>Escreve uma pergunta. Pronto.</li>
+  </ol>
+  <p>Se o bot responder que não tens acesso, ainda não foste registado.</p>
+</section>
+
+<section>
+  <h2>Exemplos de conversas</h2>
+  <p class="label">Exemplos ilustrativos, com números de teste</p>
+  <div class="chats">
+
+    <div class="chat">
+      <span class="label">Pergunta simples</span>
+      <div class="msg me">como está a minha carteira?</div>
+      <div class="msg bot">
+        <p>Hoje a tua carteira desceu <span class="down">4,7%</span>, cerca de 82 USD.</p>
+        <p>A maior parte da descida vem da AMD, que caiu <span class="down">12%</span>. Como a AMD é um quarto da tua carteira, pesa muito no total.</p>
+        <p>O motivo parece ser uma descida geral nas empresas de chips, não uma notícia má só da AMD.</p>
+        <p>A acompanhar: a NVIDIA apresenta resultados a 17/11. Isso costuma mexer com todo o setor.</p>
+      </div>
+    </div>
+
+    <div class="chat">
+      <span class="label">Pergunta de seguimento</span>
+      <div class="msg me">o que aconteceu à NVIDIA?</div>
+      <div class="msg bot">
+        <p>A NVIDIA caiu <span class="down">4,4%</span> hoje, para 191 USD por ação. Na tua carteira são cerca de 25 USD a menos.</p>
+        <p>Não há notícia específica. Caíram quase todas as empresas de chips, e a NVIDIA até caiu menos do que a média do setor.</p>
+      </div>
+      <div class="msg me">e a AMD?</div>
+      <div class="msg bot">
+        <p>A AMD caiu mais: <span class="down">11,8%</span>, para 431 USD. Na tua carteira são cerca de 57 USD a menos.</p>
+        <p>Há uma notícia positiva sobre o crescimento esperado para 2027, mas hoje o mercado ignorou-a e vendeu o setor todo.</p>
+      </div>
+    </div>
+
+    <div class="chat">
+      <span class="label">Alerta automático</span>
+      <div class="msg bot">
+        <p><strong>Alerta (15:30)</strong></p>
+        <p>A AMD caiu <span class="down">11,8%</span> hoje, agora vale 431 USD por ação. É 26% da tua carteira: perdeste cerca de 57 USD com esta ação.</p>
+        <p>Isto é só um aviso, não uma recomendação. Responde "porquê?" e eu explico o que se passou.</p>
+      </div>
+      <div class="msg me">porquê?</div>
+      <div class="msg bot">
+        <p>Hoje houve uma venda forte nas empresas de chips. O SOXX (um fundo que segue estas empresas) caiu <span class="down">6,9%</span>. A AMD caiu quase o dobro.</p>
+        <p>Não encontrei nenhuma notícia má específica da AMD. Parece um movimento do setor, não da empresa.</p>
+      </div>
+    </div>
+
+    <div class="chat">
+      <span class="label">Explicar um termo</span>
+      <div class="msg me">o que é o EPS?</div>
+      <div class="msg bot">
+        <p>EPS quer dizer lucro por ação. É o lucro da empresa dividido pelo número de ações.</p>
+        <p>Quando os analistas dizem "EPS estimado de 2,53 USD", estão a dizer quanto esperam que a empresa ganhe por cada ação. Se o valor real ficar acima, a ação costuma subir; se ficar abaixo, costuma descer.</p>
+      </div>
+    </div>
+
+    <div class="chat">
+      <span class="label">Pergunta pouco clara</span>
+      <div class="msg me">e essa?</div>
+      <div class="msg bot"><p>Não percebi a que empresa te referes. Podes dizer o nome ou o símbolo, por exemplo "Apple" ou "AAPL"?</p></div>
+    </div>
+
+  </div>
+</section>
+
+<section>
+  <h2>Perguntas que podes fazer</h2>
+  <ul>
+    <li><code>como está a minha carteira?</code></li>
+    <li><code>o que aconteceu à Apple?</code></li>
+    <li><code>compara a AMD com a NVIDIA</code></li>
+    <li><code>tenho demasiado dinheiro em tecnologia?</code></li>
+    <li><code>que empresas minhas apresentam resultados esta semana?</code></li>
+    <li><code>o que é um ETF?</code></li>
+  </ul>
+</section>
+
+<section>
+  <h2>O que nunca faz</h2>
+  <div class="never">
+    <ul>
+      <li><strong>Não compra nem vende nada.</strong> Só lê os dados da tua conta.</li>
+      <li><strong>Não inventa números.</strong> Se lhe faltar informação, diz-te.</li>
+      <li><strong>Não te diz o que fazer.</strong> Explica o que aconteceu. A decisão é sempre tua.</li>
+      <li><strong>Não mostra a tua carteira a mais ninguém.</strong> Cada pessoa só vê a sua.</li>
+    </ul>
+  </div>
+</section>
+
+<footer>TradingAgent é uma ferramenta de informação, não aconselhamento financeiro.</footer>
+
+</div>
+</body>
+</html>
