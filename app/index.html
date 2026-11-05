@@ -65,7 +65,7 @@ section.block { border-top: 1px solid var(--ink); padding-block: 56px; }
 .hero h1 { font-size: clamp(48px, 9vw, 104px); line-height: .95; }
 .hero .meta { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 16px; font-weight: 600; }
 .updated { text-align: right; display: grid; gap: 4px; }
-.stats { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--rule); }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--rule); }
 .stat { padding: 20px 20px 20px 0; border-bottom: 1px solid var(--rule); display: grid; gap: 6px; min-width: 0; }
 .stat strong { font: 700 24px var(--display); letter-spacing: -0.02em; }
 
@@ -194,6 +194,8 @@ footer .wrap { padding-block: 22px 40px; display: flex; justify-content: space-b
       <div class="stat"><span class="label">Posições</span><strong class="num" id="count">—</strong></div>
       <div class="stat"><span class="label">Maior posição</span><strong class="num" id="largest">—</strong></div>
       <div class="stat"><span class="label">Peso das 3 maiores</span><strong class="num" id="top3">—</strong></div>
+      <div class="stat"><span class="label">Dinheiro na conta</span><strong class="num" id="cash">—</strong></div>
+      <div class="stat"><span class="label">Dinheiro / conta total</span><strong class="num" id="cashpct">—</strong></div>
     </div>
 
     <section class="block">
@@ -305,6 +307,8 @@ function renderBase(d) {
   $('count').textContent = r.numero_posicoes;
   const top = d.posicoes[0];
   $('largest').textContent = top ? `${top.simbolo} ${fmtPct(top.peso_pct, false)}` : '—';
+  $('cash').textContent = r.dinheiro == null ? '—' : fmtMoney(r.dinheiro, r.moeda_dinheiro || moeda);
+  $('cashpct').textContent = r.dinheiro_pct == null ? '—' : fmtPct(r.dinheiro_pct, false);
   $('top3').textContent = fmtPct(d.posicoes.slice(0, 3).reduce((t, p) => t + (p.peso_pct || 0), 0), false);
 
   const box = $('positions'); box.replaceChildren();
